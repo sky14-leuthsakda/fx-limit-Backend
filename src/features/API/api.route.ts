@@ -6,9 +6,9 @@ import permissionRoutes from "../permissions/permission.route.js";
 import orgRoutes from "../organization/organization.route.js";
 import sysCodeRoutes from "../sys-codes/sys-code.route.js";
 import rateRoutes from "../exchange-rate/exchange-rate.route.js";
-import fxRoutes from "../fx-transaction/fx-transaction.route.js";
-import configRoutes from "../config/config.route.js";
+import fxTransactionRoutes from "../fx-transaction/fx-transaction.route.js";
 import customerRoutes from "../customers/customers.route.js";
+import configRoutes from "../config/config.route.js";
 
 const api = new Hono();
 
@@ -20,8 +20,8 @@ api.route("/permissions", permissionRoutes);
 api.route("/org", orgRoutes);
 api.route("/sys-codes", sysCodeRoutes);
 api.route("/exchange-rate", rateRoutes);
-api.route("/fx-transactions", fxRoutes);
-api.route("/config", configRoutes);
+api.route("/fx-transactions", fxTransactionRoutes);
 api.route("/customers", customerRoutes);
+api.route("/config", configRoutes);
 
 export default api;

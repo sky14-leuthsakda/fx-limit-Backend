@@ -19,8 +19,8 @@ app.use('*', cors({
 app.onError(errorHandler);
 
 app.get("/", (c) => c.json({ 
-  success: true, 
-  message: "FX Limit System API ພ້ອມໃຊ້ງານ" 
+    success: true, 
+    message: "FX Limit System API ພ້ອມໃຊ້ງານ" 
 }));
 
 app.route("/", apiRoutes);
@@ -28,19 +28,9 @@ app.route("/", apiRoutes);
 
 const port = Number(process.env.PORT ?? 3000);
 
-serve({
+serve({ 
   fetch: app.fetch,
   port,
 });
 
 console.log(`🚀 FX Limit System API running on http://localhost:${port}`);
-
-
-
-
-
-
-
-
-
-

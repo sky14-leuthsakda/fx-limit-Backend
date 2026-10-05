@@ -12,6 +12,7 @@ const dateStringSchema = z
 
 export const createFxTransactionSchema = z
     .object({
+        // ---- Customer identity ----
         idTypeId: z.number().int().positive("ກະລຸນາເລືອກປະເພດເອກະສານ"),
         idCode: z.string().trim()
             .min(1, "ກະລຸນາປ້ອນເລກທີເອກະສານ")
