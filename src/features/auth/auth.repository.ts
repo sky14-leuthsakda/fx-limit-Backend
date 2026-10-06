@@ -1,5 +1,5 @@
 import pool from "../../connector/db.js";
-import type { ResultSetHeader, RowDataPacket } from "mysql2";
+import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
 export const findUserByUsername = async (username: string) => {
     const [result] = await pool.query<RowDataPacket[][]>(
