@@ -1,5 +1,5 @@
 import pool from '../../connector/db.js';
-import type { RowDataPacket, ResultSetHeader } from 'mysql2';
+import type { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 
 export const createPermission = async (
     permissionCode: string,
