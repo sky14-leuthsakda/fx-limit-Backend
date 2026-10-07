@@ -1,6 +1,6 @@
 import * as appConfigRepository from "./app-config.repository.js";
 import { AppError } from "../../utils/AppError.js";
-import type { 
+import type {
     CreateAppConfigInput,
     UpdateAppConfigInput
 } from "./app-config.schema.js";
@@ -49,13 +49,14 @@ export const updateConfig = async (
     data: UpdateAppConfigInput,
     updatedBy: number
 ) => {
-    const existingConfig = await getConfigByKey(configKey)
+    const existingConfig = await getConfigByKey(configKey);
 
     const configValue = data.configValue ?? existingConfig.config_value;
-    const description = data.description !== undefined ? data.description
-    : existingConfig.description;
-
+    const description = data.description !== undefined
+        ? data.description
+        : existingConfig.description;
     const isActive = data.isActive ?? existingConfig.is_active;
+
     const affectedRows = await appConfigRepository.updateConfig(
         configKey,
         configValue,
@@ -65,7 +66,7 @@ export const updateConfig = async (
     );
 
     if (affectedRows === 0) {
-        throw new AppError(`ບໍ່ສາມາດແກ້ໄຂ Config ໄດ້ (ອາດຖືກລົບໄປແລ້ວ)`, 400);
+        throw new AppError("ບໍ່ສາມາດແກ້ໄຂ Config ໄດ້ (ອາດຖືກລົບໄປແລ້ວ)", 400);
     }
 
     return await appConfigRepository.findConfigByKey(configKey);
@@ -84,7 +85,7 @@ export const softDeleteConfig = async (
     if (affectedRows === 0) {
         throw new AppError(`ບໍ່ພົບ Config Key: ${configKey} ຫລື ອາດຖືກປິດໃຊ້ໄປແລ້ວ`, 404);
     }
-}
+};
 
 // Restore Config
 export const restoreConfig = async (

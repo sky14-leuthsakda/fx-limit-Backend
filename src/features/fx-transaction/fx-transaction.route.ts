@@ -13,8 +13,11 @@ const canEnterFx = requirePermission("FX_ENTRY");
 const canViewFx = requirePermission("FX_VIEW");
 const canEditFx = requirePermission("FX_EDIT");
 
+// Apply authMiddleware globally for all Fx-Transaction routes
+fxTransactionRoutes.use("*", authMiddleware);
+
 // Create Transaction (upsert customer + insert fx_daily)
-fxTransactionRoutes.post("/", authMiddleware, canEnterFx, async (c) => {
+fxTransactionRoutes.post("/", canEnterFx, async (c) => {
     const body = await c.req.json();
     const validation = createFxTransactionSchema.safeParse(body);
 
@@ -36,8 +39,8 @@ fxTransactionRoutes.post("/", authMiddleware, canEnterFx, async (c) => {
     }, 201);
 });
 
-// Get All Transactions (ປະຫວັດທັງໝົດ — ລະວັງ: ບໍ່ paginate, ໃຊ້ສະເພາະ admin)
-fxTransactionRoutes.get("/", authMiddleware, canViewFx, async (c) => {
+// Transactions All
+fxTransactionRoutes.get("/", canViewFx, async (c) => {
     const transactions = await fxTransactionService.getAllTransactions();
 
     return c.json({ 
@@ -46,8 +49,8 @@ fxTransactionRoutes.get("/", authMiddleware, canViewFx, async (c) => {
     });
 });
 
-// Get Transactions Paginated
-fxTransactionRoutes.get("/paginated", authMiddleware, canViewFx, async (c) => {
+// Transactions Paginated
+fxTransactionRoutes.get("/paginated", canViewFx, async (c) => {
     const page = Number(c.req.query("page") ?? 1);
     const limit = Number(c.req.query("limit") ?? 20);
 
@@ -60,18 +63,18 @@ fxTransactionRoutes.get("/paginated", authMiddleware, canViewFx, async (c) => {
     });
 });
 
-// Get Transaction By Id
-fxTransactionRoutes.get("/:id", authMiddleware, canViewFx, async (c) => {
-    const id = c.req.param("id");
+// Transaction By Id
+fxTransactionRoutes.get("/:id", canViewFx, async (c) => {
+    const id = Number(c.req.param("id"));
 
-    if (!id) {
+    if (!id || isNaN(id)) {
         return c.json({ 
             success: false, 
             message: "ຕ້ອງລະບຸ ID" 
         }, 400);
     }
 
-    const txn = await fxTransactionService.getTransactionById(Number(id));
+    const txn = await fxTransactionService.getTransactionById(id);
     
     return c.json({ 
         success: true, 
@@ -80,10 +83,10 @@ fxTransactionRoutes.get("/:id", authMiddleware, canViewFx, async (c) => {
 });
 
 // Update Transaction
-fxTransactionRoutes.put("/:id", authMiddleware, canEditFx, async (c) => {
-    const id = c.req.param("id");
+fxTransactionRoutes.put("/:id", canEditFx, async (c) => {
+    const id = Number(c.req.param("id"));
 
-    if (!id) {
+    if (!id || isNaN(id)) {
         return c.json({ 
             success: false, 
             message: "ຕ້ອງລະບຸ ID" 
@@ -103,7 +106,7 @@ fxTransactionRoutes.put("/:id", authMiddleware, canEditFx, async (c) => {
 
     const { userId } = c.get("user");
     const updated = await fxTransactionService.updateExistingTransaction(
-        Number(id),
+        id,
         validation.data,
         userId
     );
@@ -116,10 +119,10 @@ fxTransactionRoutes.put("/:id", authMiddleware, canEditFx, async (c) => {
 });
 
 // Soft Delete Transaction
-fxTransactionRoutes.patch("/:id/disable", authMiddleware, canEditFx, async (c) => {
-    const id = c.req.param("id");
+fxTransactionRoutes.patch("/:id/disable", canEditFx, async (c) => {
+    const id = Number(c.req.param("id"));
 
-    if (!id) {
+    if (!id || isNaN(id)) {
         return c.json({ 
             success: false, 
             message: "ຕ້ອງລະບຸ ID" 
@@ -127,7 +130,7 @@ fxTransactionRoutes.patch("/:id/disable", authMiddleware, canEditFx, async (c) =
     }
 
     const { userId } = c.get("user");
-    await fxTransactionService.softDeleteTransaction(Number(id), userId);
+    await fxTransactionService.softDeleteTransaction(id, userId);
 
     return c.json({ 
         success: true, 
@@ -136,10 +139,10 @@ fxTransactionRoutes.patch("/:id/disable", authMiddleware, canEditFx, async (c) =
 });
 
 // Restore Transaction
-fxTransactionRoutes.patch("/:id/enable", authMiddleware, canEditFx, async (c) => {
-    const id = c.req.param("id");
+fxTransactionRoutes.patch("/:id/enable", canEditFx, async (c) => {
+    const id = Number(c.req.param("id"));
 
-    if (!id) {
+    if (!id || isNaN(id)) {
         return c.json({ 
             success: false, 
             message: "ຕ້ອງລະບຸ ID" 
@@ -147,7 +150,7 @@ fxTransactionRoutes.patch("/:id/enable", authMiddleware, canEditFx, async (c) =>
     }
 
     const { userId } = c.get("user");
-    await fxTransactionService.restoreTransaction(Number(id), userId);
+    await fxTransactionService.restoreTransaction(id, userId);
 
     return c.json({ 
         success: true, 

@@ -5,19 +5,22 @@ import type {
   UpdateCustomerInput,
 } from "./customers.schema.js";
 
-const MYSQL_DUP_ENTRY = 1062;
-
-const getErrno = (err: unknown) => (err as { errno?: number }).errno;
-
-const duplicateMessage = (idCode: string) =>
-  `ລູກຄ້າທີ່ມີເລກທີເອກະສານ "${idCode}" ສຳລັບປະເພດເອກະສານນີ້ ມີຢູ່ແລ້ວ`;
-
-// ============================ Create ============================
-
+// Create Customer
 export const createNewCustomer = async (
   data: CreateCustomerInput,
   createdBy: number
 ) => {
+  // Business Logic Validation: ຕ່າງປະເທດ vs ຄົນລາວ
+  if (data.isForeigner) {
+    if (!data.firstNameEn || !data.lastNameEn) {
+      throw new AppError("ລູກຄ້າຕ່າງປະເທດຕ້ອງມີຊື່ ແລະ ນາມສະກຸນພາສາອັງກິດ", 400);
+    }
+    } else {
+    if (!data.firstNameLo || !data.lastNameLo) {
+      throw new AppError("ລູກຄ້າຕ້ອງມີຊື່ ແລະ ນາມສະກຸນພາສາລາວ", 400);
+    }
+  }
+
   try {
     const customerId = await customerRepository.createCustomer(
       data.idTypeId,
@@ -35,20 +38,21 @@ export const createNewCustomer = async (
     );
 
     return await customerRepository.findCustomerById(customerId);
-  } catch (err) {
-    if (getErrno(err) === MYSQL_DUP_ENTRY) {
-      throw new AppError(duplicateMessage(data.idCode), 409);
+  } catch (err: any) {
+    if (err?.errno === 1062) {
+      throw new AppError(`ລູກຄ້າທີ່ມີເລກທີເອກະສານ "${data.idCode}" ສຳລັບປະເພດເອກະສານນີ້ ມີຢູ່ແລ້ວ`,
+      409);
     }
     throw err;
   }
 };
 
-// ============================ Get ============================
-
+// Customers All
 export const getAllCustomers = async () => {
   return await customerRepository.findAllCustomers();
 };
 
+// Customers Paginated
 export const getCustomersPaginated = async (
     page: number, 
     limit: number
@@ -85,13 +89,18 @@ export const getCustomerById = async (customerId: number) => {
   return customer;
 };
 
-
+// Search By Id Code
 export const findCustomerByIdCode = async (idTypeId: number, idCode: string) => {
   return await customerRepository.findCustomerByIdCode(idTypeId, idCode);
 };
 
-// ============================ Update ============================
+// Search By name
+export const searchCustomers = async (name: string, limit?: number) => {
+  const safeLimit = limit && limit > 0 && limit <= 100 ? limit : 20;
+  return await customerRepository.searchCustomersByName(name, safeLimit);
+}
 
+// Update Customer
 export const updateExistingCustomer = async (
   customerId: number,
   data: UpdateCustomerInput,
@@ -146,25 +155,21 @@ export const updateExistingCustomer = async (
       merged.isActive,
       updatedBy
     );
-  } catch (err) {
-    if (getErrno(err) === MYSQL_DUP_ENTRY) {
-      throw new AppError(duplicateMessage(merged.idCode), 409);
+  } catch (err: any) {
+    if (err?.errno === 1062) {
+      throw new AppError(`ລູກຄ້າທີ່ມີເລກທີເອກະສານ "${merged.idCode}" ສຳລັບປະເພດເອກະສານນີ້ ມີຢູ່ແລ້ວ`, 409);
     }
     throw err;
   }
 
   if (affectedRows === 0) {
-    throw new AppError(
-      "ບໍ່ສາມາດແກ້ໄຂຂໍ້ມູນລູກຄ້າໄດ້ (ອາດຖືກລົບໄປແລ້ວ)",
-      400
-    );
+    throw new AppError("ບໍ່ສາມາດແກ້ໄຂຂໍ້ມູນລູກຄ້າໄດ້ (ອາດຖືກລົບໄປແລ້ວ)", 400);
   }
 
   return await customerRepository.findCustomerById(customerId);
 };
 
-// ============================ Soft Delete / Restore ============================
-
+// Soft Delete Customer
 export const softDeleteCustomer = async (
     customerId: number, 
     deletedBy: number
@@ -175,13 +180,11 @@ export const softDeleteCustomer = async (
   );
 
   if (affectedRows === 0) {
-    throw new AppError(
-      `ບໍ່ພົບລູກຄ້າ ID: ${customerId} ຫລື ອາດຖືກປິດໃຊ້ໄປແລ້ວ`,
-      404
-    );
+    throw new AppError(`ບໍ່ພົບລູກຄ້າ ID: ${customerId} ຫລື ອາດຖືກປິດໃຊ້ໄປແລ້ວ`, 404);
   }
 };
 
+// Restore Customer
 export const restoreCustomer = async (
     customerId: number, 
     updatedBy: number
@@ -192,9 +195,6 @@ export const restoreCustomer = async (
   );
 
   if (affectedRows === 0) {
-    throw new AppError(
-      `ບໍ່ພົບລູກຄ້າ ID: ${customerId} ຫລື ບໍ່ໄດ້ຖືກປິດໃຊ້`,
-      404
-    );
+    throw new AppError(`ບໍ່ພົບລູກຄ້າ ID: ${customerId} ຫລື ບໍ່ໄດ້ຖືກປິດໃຊ້`, 404);
   }
 };

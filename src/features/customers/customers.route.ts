@@ -3,6 +3,7 @@ import {
   createCustomerSchema,
   updateCustomerSchema,
   findCustomerByIdCodeSchema,
+  searchCustomerByNameSchema,
 } from "./customers.schema.js";
 import * as customerService from "./customers.service.js";
 import { authMiddleware } from "../../middlewares/auth.middleware.js";
@@ -14,41 +15,47 @@ const canEnterFx = requirePermission("FX_ENTRY");
 const canViewFx = requirePermission("FX_VIEW");
 const canEditFx = requirePermission("FX_EDIT");
 
-// Create Customer
-customerRoutes.post("/", authMiddleware, canEnterFx, async (c) => {
+// Apply authMiddleware globally for all customer routes
+customerRoutes.use("*", authMiddleware);
+
+// Create Customer 
+customerRoutes.post("/", canEnterFx, async (c) => {
     const body = await c.req.json();
     const validation = createCustomerSchema.safeParse(body);
 
     if (!validation.success) {
-        return c.json({ 
-            success: false, 
-            message: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ", 
-            errors: validation.error.issues 
+        return c.json({
+            success: false,
+            message: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ",
+            errors: validation.error.issues,
         }, 400);
     }
 
     const { userId } = c.get("user");
-    const newCustomer = await customerService.createNewCustomer(validation.data, userId);
+    const newCustomer = await customerService.createNewCustomer(
+        validation.data,
+        userId
+    );
 
-    return c.json({ 
-        success: true, 
-        message: "ສ້າງຂໍ້ມູນລູກຄ້າສຳເລັດ", 
-        data: newCustomer 
+    return c.json({
+        success: true,
+        message: "ສ້າງຂໍ້ມູນລູກຄ້າສຳເລັດ",
+        data: newCustomer,
     }, 201);
 });
 
 // Get All Customers
-customerRoutes.get("/", authMiddleware, canViewFx, async (c) => {
+customerRoutes.get("/", canViewFx, async (c) => {
     const customers = await customerService.getAllCustomers();
-  
-    return c.json({ 
-        success: true, 
-        data: customers 
+
+    return c.json({
+        success: true,
+        data: customers,
     });
 });
 
 // Get Customers Paginated
-customerRoutes.get("/paginated", authMiddleware, canViewFx, async (c) => {
+customerRoutes.get("/paginated", canViewFx, async (c) => {
     const page = Number(c.req.query("page") ?? 1);
     const limit = Number(c.req.query("limit") ?? 20);
 
@@ -62,7 +69,7 @@ customerRoutes.get("/paginated", authMiddleware, canViewFx, async (c) => {
 });
 
 // Find Customer By (idTypeId, idCode)
-customerRoutes.get("/find", authMiddleware, canEnterFx, async (c) => {
+customerRoutes.get("/find", canEnterFx, async (c) => {
     const query = {
         idTypeId: c.req.query("idTypeId"),
         idCode: c.req.query("idCode"),
@@ -71,10 +78,10 @@ customerRoutes.get("/find", authMiddleware, canEnterFx, async (c) => {
     const validation = findCustomerByIdCodeSchema.safeParse(query);
 
     if (!validation.success) {
-        return c.json({ 
-            success: false, 
-            message: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ", 
-            errors: validation.error.issues
+        return c.json({
+            success: false,
+            message: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ",
+            errors: validation.error.issues,
         }, 400);
     }
 
@@ -83,38 +90,66 @@ customerRoutes.get("/find", authMiddleware, canEnterFx, async (c) => {
         validation.data.idCode
     );
 
-    return c.json({ 
-        success: true, 
-        data: customer 
+    return c.json({
+        success: true,
+        data: customer,
+    });
+});
+
+// Search Customer By Name
+customerRoutes.get("/search", canViewFx, async (c) => {
+    const query = { name: c.req.query("name") };
+    const validation = searchCustomerByNameSchema.safeParse(query);
+
+    if (!validation.success) {
+        return c.json({
+            success: false,
+            message: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ",
+            errors: validation.error.issues,
+        }, 400);
+    }
+
+    const limitParam = c.req.query("limit");
+    const limit = limitParam ? Number(limitParam) : undefined;
+
+    const customers = await customerService.searchCustomers(
+        validation.data.name,
+        limit
+    );
+
+    return c.json({
+        success: true,
+        data: customers,
     });
 });
 
 // Get Customer By Id
-customerRoutes.get("/:id", authMiddleware, canViewFx, async (c) => {
-    const id = c.req.param("id");
+customerRoutes.get("/:id", canViewFx, async (c) => {
+    const customerId = Number(c.req.param("id"));
 
-    if (!id) {
-        return c.json({ 
-            success: false, 
-            message: "ຕ້ອງລະບຸ ID" 
+    if (isNaN(customerId)) {
+        return c.json({
+            success: false,
+            message: "ID ຕ້ອງເປັນຕົວເລກທີ່ຖືກຕ້ອງ",
         }, 400);
     }
 
-    const customer = await customerService.getCustomerById(Number(id));
-        return c.json({ 
-            success: true, 
-            data: customer 
+    const customer = await customerService.getCustomerById(customerId);
+    return c.json({
+        success: true,
+        data: customer,
     });
 });
 
-// Update Customer
-customerRoutes.put("/:id", authMiddleware, canEditFx, async (c) => {
-    const id = c.req.param("id");
 
-    if (!id) {
-        return c.json({ 
-            success: false, 
-            message: "ຕ້ອງລະບຸ ID" 
+// Update Customer
+customerRoutes.put("/:id", canEditFx, async (c) => {
+    const customerId = Number(c.req.param("id"));
+
+    if (isNaN(customerId)) {
+        return c.json({
+            success: false,
+            message: "ID ຕ້ອງເປັນຕົວເລກທີ່ຖືກຕ້ອງ",
         }, 400);
     }
 
@@ -122,16 +157,16 @@ customerRoutes.put("/:id", authMiddleware, canEditFx, async (c) => {
     const validation = updateCustomerSchema.safeParse(body);
 
     if (!validation.success) {
-        return c.json({ 
-            success: false, 
-            message: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ", 
-            errors: validation.error.issues 
+        return c.json({
+            success: false,
+            message: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ",
+            errors: validation.error.issues,
         }, 400);
     }
 
     const { userId } = c.get("user");
     const updated = await customerService.updateExistingCustomer(
-        Number(id),
+        customerId,
         validation.data,
         userId
     );
@@ -143,43 +178,43 @@ customerRoutes.put("/:id", authMiddleware, canEditFx, async (c) => {
     });
 });
 
-// Soft Delete Customer
-customerRoutes.patch("/:id/disable", authMiddleware, canEditFx, async (c) => {
-    const id = c.req.param("id");
+// Soft Delete Customer (Disable)
+customerRoutes.patch("/:id/disable", canEditFx, async (c) => {
+    const customerId = Number(c.req.param("id"));
 
-    if (!id) {
-        return c.json({ 
-            success: false, 
-            message: "ຕ້ອງລະບຸ ID" 
+    if (isNaN(customerId)) {
+        return c.json({
+            success: false,
+            message: "ID ຕ້ອງເປັນຕົວເລກທີ່ຖືກຕ້ອງ",
         }, 400);
     }
 
     const { userId } = c.get("user");
-    await customerService.softDeleteCustomer(Number(id), userId);
+    await customerService.softDeleteCustomer(customerId, userId);
 
-    return c.json({ 
-        success: true, 
-        message: "ປິດການໃຊ້ງານຂໍ້ມູນລູກຄ້າສຳເລັດ" 
+    return c.json({
+        success: true,
+        message: "ປິດການໃຊ້ງານຂໍ້ມູນລູກຄ້າສຳເລັດ",
     });
 });
 
-// Restore Customer
-customerRoutes.patch("/:id/enable", authMiddleware, canEditFx, async (c) => {
-    const id = c.req.param("id");
+// Restore Customer (Enable)
+customerRoutes.patch("/:id/enable", canEditFx, async (c) => {
+    const customerId = Number(c.req.param("id"));
 
-    if (!id) {
-        return c.json({ 
-            success: false, 
-            message: "ຕ້ອງລະບຸ ID" 
+    if (isNaN(customerId)) {
+        return c.json({
+            success: false,
+            message: "ID ຕ້ອງເປັນຕົວເລກທີ່ຖືກຕ້ອງ",
         }, 400);
     }
 
     const { userId } = c.get("user");
-    await customerService.restoreCustomer(Number(id), userId);
+    await customerService.restoreCustomer(customerId, userId);
 
-    return c.json({ 
-        success: true, 
-        message: "ເປີດການໃຊ້ງານຂໍ້ມູນລູກຄ້າສຳເລັດ" 
+    return c.json({
+        success: true,
+        message: "ເປີດການໃຊ້ງານຂໍ້ມູນລູກຄ້າສຳເລັດ",
     });
 });
 

@@ -1,295 +1,308 @@
 import * as fxTransactionRepository from "./fx-transaction.repository.js";
 import * as exchangeRateService from "../exchange-rate/exchange-rate.service.js";
 import * as sysCodeService from "../sys-codes/sys-code.service.js";
+import * as appConfigRepository from "../app-config/app-config.repository.js";
 import { AppError } from "../../utils/AppError.js";
 import type {
   CreateFxTransactionInput,
   UpdateFxTransactionInput,
 } from "./fx-transaction.schema.js";
+import type { PoolConnection } from "mysql2/promise";
 
-const MYSQL_DUP_ENTRY = 1062;
-const MYSQL_FK_FAIL = 1452;
-const MYSQL_CHECK_VIOLATED = 3819; // ມາຈາກ chk_amount_positive / chk_rate_positive
-
-const getErrno = (err: unknown) => (err as { errno?: number }).errno;
-
-// ປັດ decimal(18,2) — ຕັດໃຫ້ເຫຼືອ 2 ຫຼັກທົດສະນິຍົມ ກ່ອນສົ່ງເຂົ້າ DB
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-// ====================================================================
-// Limit Check placeholder — Module 8 ຈະມາຕື່ມ logic ຈິງຢູ່ນີ້
-// ຕອນນີ້ບໍ່ check ຫຍັງ, ພຽງແຕ່ວາງ hook ໄວ້ໃນຈຸດທີ່ຖືກຕ້ອງ
-// (requirement: "called before every save")
-// ====================================================================
+// Limit Check Engine
 const checkTransactionLimit = async (
-  _customerId: number,
-  _amountUsd: number
+  customerId: number,
+  amountUsd: number,
+  excludeTxnId?: number
 ): Promise<void> => {
-  // TODO(module 8): ດຶງ MONTHLY_LIMIT_USD ຈາກ app_config,
-  // ລວມຍອດ fxTransactionRepository.findCustomerMonthlyTotal(customerId, year, month),
-  // ແລ້ວ throw AppError 400/409 ຖ້າເກີນ
-  return;
+  const config = await appConfigRepository.findConfigByKey("MONTHLY_LIMIT_USD");
+
+  if (!config || !config.is_active) {
+    throw new AppError("ບໍ່ພົບການຕັ້ງຄ່າ MONTHLY_LIMIT_USD ໃນລະບົບ", 500);
+  }
+
+  const limit = parseFloat(config.config_value);
+
+  if (isNaN(limit) || limit <= 0) {
+    throw new AppError("ຄ່າ MONTHLY_LIMIT_USD ບໍ່ຖືກຕ້ອງ", 500);
+  }
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+
+  const existingTotal = customerId > 0 
+    ? await fxTransactionRepository.findCustomerMonthlyTotal(
+    customerId,
+    year,
+    month,
+    excludeTxnId
+  )
+  : 0;
+
+  const newTotal = existingTotal + amountUsd;
+
+  if (newTotal > limit) {
+    throw new AppError(
+        `ທຸລະກຳນີ້ເກີນວົງເງິນສູງສຸດຕໍ່ເດືອນ (${limit.toFixed(2)} USD). ` +
+        `ຍອດໃຊ້ແລ້ວເດືອນນີ້: ${existingTotal.toFixed(2)} USD, ` +
+        `ທຸລະກຳນີ້: ${amountUsd.toFixed(2)} USD`,
+      409
+    );
+  }
 };
 
-// ====================================================================
-// ຄຳນວນ rate / amount_lak / amount_usd ຈາກອັດຕາຂອງມື້ນີ້
-// throw 404 ຖ້າຍັງບໍ່ມີອັດຕາຂອງສະກຸນເງິນນັ້ນໃນມື້ນີ້ (ຜ່ານ exchangeRateService.getTodayRate)
-// ====================================================================
-const calculateAmounts = async (
-    currencyId: number, 
-    amountForeign: number
-) => {
-    const currency = await sysCodeService.getSysCodeById(currencyId);
+// Calculate Rate / amount_lak / amount_usd / By Today Rate
+const calculateAmounts = async (currencyId: number, amountForeign: number) => {
+  const currency = await sysCodeService.getSysCodeById(currencyId);
 
-    if (currency.category !== "CURRENCY") {
-        throw new AppError(`Currency ID: ${currencyId} ບໍ່ແມ່ນລະຫັດສະກຸນເງິນ`, 400);
-    }
+  if (currency.category !== "CURRENCY") {
+    throw new AppError(`Currency ID: ${currencyId} ບໍ່ແມ່ນລະຫັດສະກຸນເງິນ`, 400);
+  }
 
-    const rateInfo = await exchangeRateService.getTodayRate(currencyId);
-    const rate = Number(rateInfo.rate);
-    const amountLak = round2(amountForeign * rate);
+  const rateInfo = await exchangeRateService.getTodayRate(currencyId);
+  const rate = Number(rateInfo.rate);
+  const amountLak = round2(amountForeign * rate);
 
-    let amountUsd: number;
+  let amountUsd: number;
 
-    if (currency.code === "USD") {
-        amountUsd = round2(amountForeign);
-    } else {
-        // ຕ້ອງການອັດຕາ USD ຂອງມື້ນີ້ ເພື່ອແປງ LAK → USD (cross-rate)
-        const currencies = await sysCodeService.getSysCodes("CURRENCY");
-        const usdCode = currencies.find((c: any) => c.code === "USD");
+  if (currency.code === "USD") {
+    amountUsd = round2(amountForeign);
+  } else {
+    // Today Rate Change LAK → USD (cross-rate)
+    const currencies = await sysCodeService.getSysCodes("CURRENCY");
+    const usdCode = currencies.find((c: any) => c.code === "USD");
 
     if (!usdCode) {
-        throw new AppError("ບໍ່ພົບລະຫັດສະກຸນເງິນ USD ໃນລະບົບ", 500);
+      throw new AppError("ບໍ່ພົບລະຫັດສະກຸນເງິນ USD ໃນລະບົບ", 500);
     }
 
-        const usdRateInfo = await exchangeRateService.getTodayRate(usdCode.code_id);
-        const usdRate = Number(usdRateInfo.rate);
-        amountUsd = round2(amountLak / usdRate);
-    }
+    const usdRateInfo = await exchangeRateService.getTodayRate(usdCode.code_id);
+    const usdRate = Number(usdRateInfo.rate);
+    amountUsd = round2(amountLak / usdRate);
+  }
 
-    return { rate, amountLak, amountUsd };
+  return { rate, amountLak, amountUsd };
 };
 
-// Create — upsert customer + insert fx_daily ໃນ DB transaction ດຽວກັນ
+// Create — upsert customer + insert fx_daily in DB transaction 
 export const createNewTransaction = async (
   data: CreateFxTransactionInput,
   createdBy: number
 ) => {
-    // ຄຳນວນກ່ອນເປີດ transaction (ເປັນແຕ່ການອ່ານ, ບໍ່ຈຳເປັນຕ້ອງຢູ່ໃນ transaction)
-    const { rate, amountLak, amountUsd } = await calculateAmounts(
-        data.currencyId,
-        data.amountForeign
+// Calculate before open Amount & Rate
+  const { rate, amountLak, amountUsd } = await calculateAmounts(
+    data.currencyId,
+    data.amountForeign
+  );
+
+  const connection = await fxTransactionRepository.getTransactionConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const existingCustomer = await fxTransactionRepository.findCustomerByIdCodeTx(
+      connection,
+      data.idTypeId,
+      data.idCode
     );
 
-    const connection = await fxTransactionRepository.getTransactionConnection();
+    if (existingCustomer) {
+      await checkTransactionLimit(
+        existingCustomer.customer_id,
+        amountUsd
+      );
+    } else {
+      await checkTransactionLimit(0, amountUsd);
+    }
 
-    try {
-        await connection.beginTransaction();
-
-        const existingCustomer = await fxTransactionRepository.findCustomerByIdCodeTx(
-            connection,
-            data.idTypeId,
-            data.idCode
+    const customerId = existingCustomer
+      ? existingCustomer.customer_id
+      : await fxTransactionRepository.createCustomerTx(
+          connection,
+          data.idTypeId,
+          data.idCode,
+          data.firstNameEn,
+          data.lastNameEn,
+          data.firstNameLo,
+          data.lastNameLo,
+          data.dateOfBirth,
+          data.isForeigner,
+          data.genderId,
+          data.phoneNumber,
+          data.address,
+          createdBy
         );
 
-        const customerId = existingCustomer ? existingCustomer.customer_id
-        : await fxTransactionRepository.createCustomerTx(
-            connection,
-            data.idTypeId,
-            data.idCode,
-            data.firstNameEn,
-            data.lastNameEn,
-            data.firstNameLo,
-            data.lastNameLo,
-            data.dateOfBirth,
-            data.isForeigner,
-            data.genderId,
-            data.phoneNumber,
-            data.address,
-            createdBy
-        );
+    const txnId = await fxTransactionRepository.createTransactionTx(
+      connection,
+      new Date(),
+      customerId,
+      data.productId,
+      data.currencyId,
+      data.amountForeign,
+      rate,
+      amountLak,
+      amountUsd,
+      data.branchId,
+      data.unitId,
+      createdBy
+    );
 
-        // ຈຸດທີ່ requirement ບອກ "ຕ້ອງເອີ້ນກ່ອນທຸກຄັ້ງທີ່ save" — ຍັງເປັນ placeholder
-        await checkTransactionLimit(customerId, amountUsd);
+    await connection.commit();
 
-        const txnId = await fxTransactionRepository.createTransactionTx(
-            connection,
-            new Date(),
-            customerId,
-            data.productId,
-            data.currencyId,
-            data.amountForeign,
-            rate,
-            amountLak,
-            amountUsd,
-            data.branchId,
-            data.unitId,
-            createdBy
-        );
+    return await fxTransactionRepository.findTransactionById(txnId);
+  } catch (err: any) {
+    await connection.rollback();
 
-        await connection.commit();
-
-        return await fxTransactionRepository.findTransactionById(txnId);
-    } catch (err) {
-        await connection.rollback();
-
-        const errno = getErrno(err);
-
-    if (errno === MYSQL_DUP_ENTRY) {
-        throw new AppError(`ລູກຄ້າທີ່ມີເລກທີເອກະສານ "${data.idCode}" ມີຢູ່ແລ້ວ`, 409);
+    if (err.errno === 1062) {
+      throw new AppError(`ລູກຄ້າທີ່ມີເລກທີເອກະສານ "${data.idCode}" ມີຢູ່ແລ້ວ`, 409);
     }
-    if (errno === MYSQL_FK_FAIL) {
-        throw new AppError("ຂໍ້ມູນອ້າງອີງ (ສາຂາ/ຫົວໜ່ວຍ/ປະເພດ/ສະກຸນເງິນ) ບໍ່ຖືກຕ້ອງ", 400);
+    if (err.errno === 1452) {
+      throw new AppError("ຂໍ້ມູນອ້າງອີງ (ສາຂາ/ຫົວໜ່ວຍ/ປະເພດ/ສະກຸນເງິນ) ບໍ່ຖືກຕ້ອງ", 400);
     }
-    if (errno === MYSQL_CHECK_VIOLATED) {
-        throw new AppError("ຈຳນວນເງິນ ຫຼື ອັດຕາແລກປ່ຽນຕ້ອງຫຼາຍກວ່າ 0", 400);
+    if (err.errno === 3819) {
+      throw new AppError("ຈຳນວນເງິນ ຫຼື ອັດຕາແລກປ່ຽນຕ້ອງຫຼາຍກວ່າ 0", 400);
     }
-        throw err;
-    } finally {
-        connection.release();
-    }
+    throw err;
+  } finally {
+    connection.release();
+  }
 };
 
-// ============================ Get ============================
-
+// Transactions All
 export const getAllTransactions = async () => {
-    return await fxTransactionRepository.findAllTransactions();
+  return await fxTransactionRepository.findAllTransactions();
 };
 
-export const getTransactionsPaginated = async (
-    page: number, 
-    limit: number
-) => {
-    const safePage = page > 0 ? page : 1;
-    const safeLimit = limit > 0 && limit <= 100 ? limit : 20;
+// Transactions Paginated
+export const getTransactionsPaginated = async (page: number, limit: number) => {
+  const safePage = page > 0 ? page : 1;
+  const safeLimit = limit > 0 && limit <= 100 ? limit : 20;
 
-    const { 
-        transactions, 
-        total_records 
-    } = await fxTransactionRepository.findTransactionsPaginated(safePage, safeLimit);
+  const { transactions, total_records } =
+    await fxTransactionRepository.findTransactionsPaginated(safePage, safeLimit);
 
-    const totalPages = Math.ceil(total_records / safeLimit);
+  const totalPages = Math.ceil(total_records / safeLimit);
 
-    return {
-        transactions,
-        pagination: {
-            currentPage: safePage,
-            limit: safeLimit,
-            totalItems: total_records,
-            totalPages,
-        },
-    };
+  return {
+    transactions,
+    pagination: {
+      currentPage: safePage,
+      limit: safeLimit,
+      totalItems: total_records,
+      totalPages,
+    },
+  };
 };
 
 // Transaction By Id — single source of truth
 export const getTransactionById = async (txnId: number) => {
-    const txn = await fxTransactionRepository.findTransactionById(txnId);
+  const txn = await fxTransactionRepository.findTransactionById(txnId);
 
-    if (!txn) {
-        throw new AppError(`ບໍ່ພົບທຸລະກຳ ID: ${txnId}`, 404);
-    }
+  if (!txn) {
+    throw new AppError(`ບໍ່ພົບທຸລະກຳ ID: ${txnId}`, 404);
+  }
 
-    return txn;
+  return txn;
 };
 
-// ============================ Update ============================
-// ຖ້າ amountForeign ຫຼື currencyId ປ່ຽນ, ຄຳນວນ rate/amount_lak/amount_usd ໃໝ່
-// ຕາມອັດຕາຂອງ "ມື້ນີ້" (ບໍ່ແມ່ນມື້ທີ່ສ້າງທຸລະກຳເດີມ) — ນີ້ແມ່ນການຕັດສິນໃຈອອກແບບ,
-// ຖ້າຢາກຄົງ rate ເດີມໄວ້ເມື່ອແກ້ແຕ່ field ອື່ນ (ເຊັ່ນ branchId) ໃຫ້ແຈ້ງເພື່ອປັບ
+// Update Transaction 
 export const updateExistingTransaction = async (
-    txnId: number,
-    data: UpdateFxTransactionInput,
-    updatedBy: number
+  txnId: number,
+  data: UpdateFxTransactionInput,
+  updatedBy: number
 ) => {
-    const existing = await getTransactionById(txnId);
+  const existing = await getTransactionById(txnId);
 
-    const merged = {
-        customerId: existing.customer_id,
-        productId: data.productId ?? existing.product_id,
-        currencyId: data.currencyId ?? existing.currency_id,
-        amountForeign: data.amountForeign ?? Number(existing.amount_foreign),
-        branchId: data.branchId ?? existing.branch_id,
-        unitId: data.unitId ?? existing.unit_id,
-        isActive: data.isActive ?? existing.is_active,
-    };
+  const merged = {
+    customerId: existing.customer_id,
+    productId: data.productId ?? existing.product_id,
+    currencyId: data.currencyId ?? existing.currency_id,
+    amountForeign: data.amountForeign ?? Number(existing.amount_foreign),
+    branchId: data.branchId ?? existing.branch_id,
+    unitId: data.unitId !== undefined ? data.unitId : existing.unit_id,
+    isActive: data.isActive ?? existing.is_active,
+  };
 
-    const amountOrCurrencyChanged = data.amountForeign !== undefined || data.currencyId !== undefined;
+  const amountOrCurrencyChanged =
+    data.amountForeign !== undefined || data.currencyId !== undefined;
 
-    let rate: number;
-    let amountLak: number;
-    let amountUsd: number;
+  let rate: number;
+  let amountLak: number;
+  let amountUsd: number;
 
-    if (amountOrCurrencyChanged) {
-        const calculated = await calculateAmounts(merged.currencyId, merged.amountForeign);
-        rate = calculated.rate;
-        amountLak = calculated.amountLak;
-        amountUsd = calculated.amountUsd;
-    } else {
-        rate = Number(existing.rate);
-        amountLak = Number(existing.amount_lak);
-        amountUsd = Number(existing.amount_usd);
-    }
+  if (amountOrCurrencyChanged) {
+    const calculated = await calculateAmounts(merged.currencyId, merged.amountForeign);
+    rate = calculated.rate;
+    amountLak = calculated.amountLak;
+    amountUsd = calculated.amountUsd;
 
-    let affectedRows: number;
+    // re-check limit 
+    await checkTransactionLimit(merged.customerId, amountUsd, txnId);
+  } else {
+    rate = Number(existing.rate);
+    amountLak = Number(existing.amount_lak);
+    amountUsd = Number(existing.amount_usd);
+  }
 
-    try {
-        affectedRows = await fxTransactionRepository.updateTransaction(
-            txnId,
-            existing.txn_date,
-            merged.customerId,
-            merged.productId,
-            merged.currencyId,
-            merged.amountForeign,
-            rate,
-            amountLak,
-            amountUsd,
-            merged.branchId,
-            merged.unitId,
-            merged.isActive,
-            updatedBy
-        );
-    } catch (err) {
-        const errno = getErrno(err);
+  let affectedRows: number;
 
-    if (errno === MYSQL_FK_FAIL) {
-        throw new AppError("ຂໍ້ມູນອ້າງອີງ (ສາຂາ/ຫົວໜ່ວຍ/ປະເພດ/ສະກຸນເງິນ) ບໍ່ຖືກຕ້ອງ", 400);
-    }
-    if (errno === MYSQL_CHECK_VIOLATED) {
-        throw new AppError("ຈຳນວນເງິນ ຫຼື ອັດຕາແລກປ່ຽນຕ້ອງຫຼາຍກວ່າ 0", 400);
-    }
-        throw err;
-    }
-
-    if (affectedRows === 0) {
-        throw new AppError("ບໍ່ສາມາດແກ້ໄຂທຸລະກຳໄດ້ (ອາດຖືກລົບໄປແລ້ວ)", 400);
-    }
-
-    return await fxTransactionRepository.findTransactionById(txnId);
-};
-
-// ============================ Soft Delete / Restore ============================
-
-export const softDeleteTransaction = async (
-    txnId: number, 
-    deletedBy: number
-) => {
-    const affectedRows = await fxTransactionRepository.softDeleteTransaction(
-        txnId,
-        deletedBy
+  try {
+    affectedRows = await fxTransactionRepository.updateTransaction(
+      txnId,
+      existing.txn_date,
+      merged.customerId,
+      merged.productId,
+      merged.currencyId,
+      merged.amountForeign,
+      rate,
+      amountLak,
+      amountUsd,
+      merged.branchId,
+      merged.unitId,
+      merged.isActive,
+      updatedBy
     );
-
-    if (affectedRows === 0) {
-        throw new AppError(`ບໍ່ພົບທຸລະກຳ ID: ${txnId} ຫລື ອາດຖືກລົບໄປແລ້ວ`, 404);
+  } catch (err: any) {
+    if (err.errno === 1452) {
+      throw new AppError("ຂໍ້ມູນອ້າງອີງ (ສາຂາ/ຫົວໜ່ວຍ/ປະເພດ/ສະກຸນເງິນ) ບໍ່ຖືກຕ້ອງ", 400);
     }
+    if (err.errno === 3819) {
+      throw new AppError("ຈຳນວນເງິນ ຫຼື ອັດຕາແລກປ່ຽນຕ້ອງຫຼາຍກວ່າ 0", 400);
+    }
+    throw err;
+  }
+
+  if (affectedRows === 0) {
+    throw new AppError("ບໍ່ສາມາດແກ້ໄຂທຸລະກຳໄດ້ (ອາດຖືກລົບໄປແລ້ວ)", 400);
+  }
+
+  return await fxTransactionRepository.findTransactionById(txnId);
 };
 
+// Soft Delete Transaction
+export const softDeleteTransaction = async (txnId: number, deletedBy: number) => {
+  const affectedRows = await fxTransactionRepository.softDeleteTransaction(
+    txnId,
+    deletedBy
+  );
+
+  if (affectedRows === 0) {
+    throw new AppError(`ບໍ່ພົບທຸລະກຳ ID: ${txnId} ຫລື ອາດຖືກລົບໄປແລ້ວ`, 404);
+  }
+};
+
+// Restore Transaction
 export const restoreTransaction = async (txnId: number, updatedBy: number) => {
-    const affectedRows = await fxTransactionRepository.restoreTransaction(
-        txnId,
-        updatedBy
-    );
+  const affectedRows = await fxTransactionRepository.restoreTransaction(
+    txnId,
+    updatedBy
+  );
 
-    if (affectedRows === 0) {
-        throw new AppError(`ບໍ່ພົບທຸລະກຳ ID: ${txnId} ຫລື ບໍ່ໄດ້ຖືກລົບ`, 404);
-    }
+  if (affectedRows === 0) {
+    throw new AppError(`ບໍ່ພົບທຸລະກຳ ID: ${txnId} ຫລື ບໍ່ໄດ້ຖືກລົບ`, 404);
+  }
 };

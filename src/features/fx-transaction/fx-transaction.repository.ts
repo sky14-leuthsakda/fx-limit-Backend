@@ -1,16 +1,7 @@
 import pool from "../../connector/db.js";
 import type { RowDataPacket, ResultSetHeader, PoolConnection } from "mysql2/promise";
 
-// ====================================================================
 // TRANSACTION-AWARE HELPERS (customer upsert + fx_daily insert)
-// ----------------------------------------------------------------------
-// ເພື່ອໃຫ້ "ຫາ/ສ້າງລູກຄ້າ" ແລະ "ບັນທຶກທຸລະກຳ" ເປັນ atomic ດຽວກັນ
-// (ຖ້າ insert fx_daily ລົ້ມ, customer ທີ່ຫາກໍສ້າງຕ້ອງ rollback ນຳ),
-// function ກຸ່ມນີ້ຮັບ `connection` ທີ່ service ເປີດຜ່ານ pool.getConnection()
-// ແລະ beginTransaction() ໄວ້ແລ້ວ — ແທນທີ່ຈະໃຊ້ `pool` ໂດຍກົງຄືບ່ອນອື່ນ.
-// Pattern ນີ້ຄືກັນກັບ syncRolePermissions ໃນ role.repository.ts.
-// ====================================================================
-
 export const getTransactionConnection = () => pool.getConnection();
 
 export const findCustomerByIdCodeTx = async (
@@ -26,6 +17,7 @@ export const findCustomerByIdCodeTx = async (
     return result[0]?.[0] ?? null;
 };
 
+// Create Customer In Transaction
 export const createCustomerTx = async (
     connection: PoolConnection,
     idTypeId: number,
@@ -62,6 +54,7 @@ export const createCustomerTx = async (
     return result[0]?.[0]?.customer_id ?? 0;
 };
 
+// Create Transaction
 export const createTransactionTx = async (
     connection: PoolConnection,
     txnDate: Date,
@@ -96,10 +89,7 @@ export const createTransactionTx = async (
     return result[0]?.[0]?.txn_id ?? 0;
 };
 
-// ====================================================================
-// NORMAL CRUD (ບໍ່ຕ້ອງການ transaction ແຍກ — ໃຊ້ pool ຕາມປົກກະຕິ)
-// ====================================================================
-
+// Transactions All
 export const findAllTransactions = async () => {
     const [result] = await pool.query<RowDataPacket[][]>(
         "CALL sp_fx_daily_get_all()"
@@ -108,10 +98,8 @@ export const findAllTransactions = async () => {
     return result[0] ?? [];
 };
 
-export const findTransactionsPaginated = async (
-    page: number, 
-    limit: number
-) => {
+// Transactions Paginated
+export const findTransactionsPaginated = async (page: number, limit: number) => {
     const [results] = await pool.query<RowDataPacket[][]>(
         "CALL sp_fx_daily_get_paginated(?, ?)",
         [page, limit]
@@ -123,6 +111,7 @@ export const findTransactionsPaginated = async (
     };
 };
 
+// Transaction By Txn ID
 export const findTransactionById = async (txnId: number) => {
     const [result] = await pool.query<RowDataPacket[][]>(
         "CALL sp_fx_daily_get_by_id(?)",
@@ -132,6 +121,7 @@ export const findTransactionById = async (txnId: number) => {
     return result[0]?.[0] ?? null;
 };
 
+// Update Transaction
 export const updateTransaction = async (
     txnId: number,
     txnDate: Date,
@@ -146,8 +136,8 @@ export const updateTransaction = async (
     unitId: number | null,
     isActive: number,
     updatedBy: number
-) => {
-    const [result] = await pool.query<ResultSetHeader>(
+): Promise<number> => {
+    const [result] = await pool.query<ResultSetHeader[]>(
         "CALL sp_fx_daily_update(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
             txnId,
@@ -166,43 +156,45 @@ export const updateTransaction = async (
         ]
     );
 
-    return result.affectedRows;
+    return result[0]?.affectedRows ?? 0;
 };
 
+// Soft Delete Transaction
 export const softDeleteTransaction = async (
     txnId: number, 
     deletedBy: number
-) => {
-    const [result] = await pool.query<ResultSetHeader>(
+): Promise<number> => {
+    const [result] = await pool.query<ResultSetHeader[]>(
         "CALL sp_fx_daily_soft_delete(?, ?)",
         [txnId, deletedBy]
     );
 
-    return result.affectedRows;
+    return result[0]?.affectedRows ?? 0;
 };
 
+// Restore Transaction
 export const restoreTransaction = async (
     txnId: number, 
     updatedBy: number
 ) => {
-    const [result] = await pool.query<ResultSetHeader>(
+    const [result] = await pool.query<ResultSetHeader[]>(
         "CALL sp_fx_daily_restore(?, ?)",
         [txnId, updatedBy]
     );
 
-    return result.affectedRows;
+    return result[0]?.affectedRows ?? 0;
 };
 
-// ສຳລັບ module 8 (Limit Check) — ລວມຍອດ amount_usd ຂອງລູກຄ້າໃນເດືອນທີ່ລະບຸ
-// ຍັງບໍ່ຖືກເອີ້ນໃຊ້ຈິງຕອນນີ້ (checkTransactionLimit ໃນ service ເປັນ placeholder ຢູ່)
+// Limit Check — ລວມຍອດ amount_usd ຂອງລູກຄ້າຕໍ່ເດືອນ
 export const findCustomerMonthlyTotal = async (
     customerId: number,
     year: number,
-    month: number
+    month: number,
+    excludeTxnId?: number
 ) => {
     const [result] = await pool.query<RowDataPacket[][]>(
-        "CALL sp_fx_daily_get_customer_monthly_total(?, ?, ?)",
-        [customerId, year, month]
+        "CALL sp_fx_daily_get_customer_monthly_total(?, ?, ?, ?)",
+        [customerId, year, month, excludeTxnId ?? null]
     );
 
     return Number(result[0]?.[0]?.total_usd ?? 0);

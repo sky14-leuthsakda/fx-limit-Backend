@@ -14,7 +14,7 @@ export const createCustomer = async (
     phoneNumber: string | undefined,
     address: string | undefined,
     createdBy: number
-) => {
+): Promise<number> => {
     const [result] = await pool.query<RowDataPacket[][]>(
         "CALL sp_customers_insert(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
@@ -80,6 +80,17 @@ export const findCustomerByIdCode = async (
     return result[0]?.[0] ?? null;
 };
 
+// Customer Lookup 
+export const searchCustomersByName = async (name: string, limit: number) => {
+    const [result] = await pool.query<RowDataPacket[][]>(
+        "CALL sp_customers_search_by_name(?, ?)",
+        [name, limit]
+    );
+
+    return result[0] ?? [];
+};
+
+// Update Customer
 export const updateCustomer = async (
     customerId: number,
     idTypeId: number,
@@ -95,7 +106,7 @@ export const updateCustomer = async (
     address: string | null,
     isActive: number,
     updatedBy: number
-) => {
+): Promise<number> => {
     const [result] = await pool.query<ResultSetHeader>(
         "CALL sp_customers_update(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
@@ -116,29 +127,31 @@ export const updateCustomer = async (
         ]
     );
 
-    return result.affectedRows;
+    return result.affectedRows ?? 1;
 };
 
+// Soft Delete Customer
 export const softDeleteCustomer = async (
     customerId: number, 
     deletedBy: number
-) => {
+): Promise<number> => {
     const [result] = await pool.query<ResultSetHeader>(
         "CALL sp_customers_soft_delete(?, ?)",
         [customerId, deletedBy]
     );
 
-    return result.affectedRows;
+    return result.affectedRows ?? 1;
 };
 
+// Restore Customer
 export const restoreCustomer = async (
     customerId: number, 
     updatedBy: number
-) => {
+): Promise<number> => {
     const [result] = await pool.query<ResultSetHeader>(
         "CALL sp_customers_restore(?, ?)",
         [customerId, updatedBy]
     );
 
-    return result.affectedRows;
+    return result.affectedRows ?? 1;
 };
