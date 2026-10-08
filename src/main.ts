@@ -1,4 +1,4 @@
-import { OpenAPIHono } from "@hono/zod-openapi";
+import { Hono } from "hono";
 import { swaggerUI } from "@hono/swagger-ui";
 import { serve } from "@hono/node-server";
 import { cors } from 'hono/cors';
@@ -6,7 +6,7 @@ import { errorHandler } from "./middlewares/error.middleware.js";
 import { requestLogger } from "./middlewares/logger.middleware.js";
 import apiRoutes from './features/API/api.route.js'
 
-const app = new OpenAPIHono();
+const app = new Hono();
 
 app.use(requestLogger);
 
@@ -19,17 +19,29 @@ app.use('*', cors({
 
 app.onError(errorHandler);
 
-// OpenAPI Specification Endpoint (/doc)
-app.doc('/doc', {
-  openapi: '3.0.0',
-  info: {
-    version: '1.0.0',
-    title: 'FX Limit System API',
-    description: 'API Documentation ສຳລັບທີມ Frontend',
-  },
+// Swagger Spec Endpoint (Basic Spec)
+app.get('/doc', (c) => {
+  return c.json({
+    openapi: '3.0.0',
+    info: {
+      title: 'FX Limit System API',
+      version: '1.0.0',
+      description: 'API Documentation ສຳລັບທີມ Frontend',
+    },
+    paths: {
+      '/': {
+        get: {
+          summary: 'Check API Status',
+          responses: {
+            '200': { description: 'Successful response' },
+          },
+        },
+      },
+    },
+  });
 });
 
-// Swagger Ui Enpoint (/ui)
+// Swagger UI Route
 app.get('/ui', swaggerUI({ url: '/doc' }));
 
 app.get("/", (c) => c.json({ 
