@@ -9,6 +9,7 @@ import rateRoutes from "../exchange-rate/exchange-rate.route.js";
 import fxTransactionRoutes from "../fx-transaction/fx-transaction.route.js";
 import customerRoutes from "../customers/customers.route.js";
 import appConfigRoutes from "../app-config/app-config.route.js";
+import auditRoutes from "../audit-log/audit.route.js";
 
 const api = new Hono();
 
@@ -23,5 +24,6 @@ api.route("/exchange-rate", rateRoutes);
 api.route("/fx-transactions", fxTransactionRoutes);
 api.route("/customers", customerRoutes);
 api.route("/app-config", appConfigRoutes);
+api.route("/audit", auditRoutes);
 
 export default api;
