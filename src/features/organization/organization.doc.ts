@@ -1,0 +1,253 @@
+export const organizationDocs = {
+    // ==================== Branches ====================
+    "/branches": {
+        post: {
+            summary: "ສ້າງສາຂາໃໝ່ (Create Branch)",
+            tags: ["Organization - Branches"],
+            security: [{ BearerAuth: [] }],
+            requestBody: {
+                required: true,
+                content: {
+                    "application/json": {
+                        schema: {
+                            type: "object",
+                            properties: {
+                                name: { type: "string", example: "ສາຂາໃຫຍ່ ວຽງຈັນ" },
+                                code: { type: "string", example: "VTE-001" },
+                            },
+                            required: ["name", "code"],
+                        },
+                    },
+                },
+            },
+            responses: {
+                "201": { description: "ສ້າງສາຂາສຳເລັດ" },
+                "400": { description: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ" },
+                "401": { description: "Unauthorized" },
+            },
+        },
+        get: {
+            summary: "ດຶງລາຍຊື່ສາຂາທັງໝົດ (Get All Branches)",
+            tags: ["Organization - Branches"],
+            security: [{ BearerAuth: [] }],
+            responses: {
+                "200": { description: "ດຶງຂໍ້ມູນສຳເລັດ" },
+                "401": { description: "Unauthorized" },
+            },
+        },
+    },
+    "/branches/paginated": {
+        get: {
+            summary: "ດຶງລາຍຊື່ສາຂາແບບແບ່ງໜ້າ (Get Branches Paginated)",
+            tags: ["Organization - Branches"],
+            security: [{ BearerAuth: [] }],
+            parameters: [
+                { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+                { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+            ],
+            responses: {
+                "200": { description: "ດຶງຂໍ້ມູນສຳເລັດ" },
+            },
+        },
+    },
+    "/branches/{id}": {
+        get: {
+            summary: "ດຶງຂໍ້ມູນສາຂາຕາມ ID (Get Branch By ID)",
+            tags: ["Organization - Branches"],
+            security: [{ BearerAuth: [] }],
+            parameters: [
+                { name: "id", in: "path", required: true, schema: { type: "integer" } },
+            ],
+            responses: {
+                "200": { description: "ສຳເລັດ" },
+                "400": { description: "ຕ້ອງລະບຸ ID" },
+            },
+        },
+        put: {
+            summary: "ແກ້ໄຂຂໍ້ມູນສາຂາ (Update Branch)",
+            tags: ["Organization - Branches"],
+            security: [{ BearerAuth: [] }],
+            parameters: [
+                { name: "id", in: "path", required: true, schema: { type: "integer" } },
+            ],
+            requestBody: {
+                required: true,
+                content: {
+                    "application/json": {
+                        schema: {
+                            type: "object",
+                            properties: {
+                                name: { type: "string", example: "ສາຂາ ຫຼວງພະບາງ" },
+                            },
+                        },
+                    },
+                },
+            },
+            responses: {
+                "200": { description: "ແກ້ໄຂສາຂາສຳເລັດ" },
+                "400": { description: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ" },
+            },
+        },
+    },
+    "/branches/{id}/disable": {
+        patch: {
+            summary: "ປິດການໃຊ້ງານສາຂາ (Disable Branch)",
+            tags: ["Organization - Branches"],
+            security: [{ BearerAuth: [] }],
+            parameters: [
+                { name: "id", in: "path", required: true, schema: { type: "integer" } },
+            ],
+            responses: {
+                "200": { description: "ປິດການໃຊ້ງານສາຂາສຳເລັດ" },
+                "400": { description: "ຕ້ອງລະບຸ ID" },
+            },
+        },
+    },
+    "/branches/{id}/enable": {
+        patch: {
+            summary: "ເປີດການໃຊ້ງານສາຂາ (Restore Branch)",
+            tags: ["Organization - Branches"],
+            security: [{ BearerAuth: [] }],
+            parameters: [
+                { name: "id", in: "path", required: true, schema: { type: "integer" } },
+            ],
+            responses: {
+                "200": { description: "ເປີດການໃຊ້ງານສາຂາສຳເລັດ" },
+                "400": { description: "ຕ້ອງລະບຸ ID" },
+            },
+        },
+    },
+    "/branches/{branchId}/units": {
+        get: {
+            summary: "ດຶງລາຍຊື່ໜ່ວຍບໍລິການຕາມ Branch ID (Get Units By Branch)",
+            tags: ["Organization - Units"],
+            security: [{ BearerAuth: [] }],
+            parameters: [
+                { name: "branchId", in: "path", required: true, schema: { type: "integer" } },
+            ],
+            responses: {
+                "200": { description: "ສຳເລັດ" },
+                "400": { description: "ຕ້ອງລະບຸ Branch ID" },
+            },
+        },
+    },
+
+    // ==================== Units ====================
+    "/units": {
+        post: {
+            summary: "ສ້າງໜ່ວຍບໍລິການໃໝ່ (Create Unit)",
+            tags: ["Organization - Units"],
+            security: [{ BearerAuth: [] }],
+            requestBody: {
+                required: true,
+                content: {
+                    "application/json": {
+                        schema: {
+                            type: "object",
+                            properties: {
+                                name: { type: "string", example: "ໜ່ວຍບໍລິການ ຕະຫຼາດເຊົ້າ" },
+                                branchId: { type: "integer", example: 1 },
+                            },
+                            required: ["name", "branchId"],
+                        },
+                    },
+                },
+            },
+            responses: {
+                "201": { description: "ສ້າງໜ່ວຍບໍລິການສຳເລັດ" },
+                "400": { description: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ" },
+                "401": { description: "Unauthorized" },
+            },
+        },
+        get: {
+            summary: "ດຶງລາຍຊື່ໜ່ວຍບໍລິການທັງໝົດ (Get All Units)",
+            tags: ["Organization - Units"],
+            security: [{ BearerAuth: [] }],
+            responses: {
+                "200": { description: "ດຶງຂໍ້ມູນສຳເລັດ" },
+                "401": { description: "Unauthorized" },
+            },
+        },
+    },
+    "/units/paginated": {
+        get: {
+            summary: "ດຶງລາຍຊື່ໜ່ວຍບໍລິການແບບແບ່ງໜ້າ (Get Units Paginated)",
+            tags: ["Organization - Units"],
+            security: [{ BearerAuth: [] }],
+            parameters: [
+                { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+                { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+            ],
+            responses: {
+                "200": { description: "ດຶງຂໍ້ມູນສຳເລັດ" },
+            },
+        },
+    },
+    "/units/{id}": {
+        get: {
+            summary: "ດຶງຂໍ້ມູນໜ່ວຍບໍລິການຕາມ ID (Get Unit By ID)",
+            tags: ["Organization - Units"],
+            security: [{ BearerAuth: [] }],
+            parameters: [
+                { name: "id", in: "path", required: true, schema: { type: "integer" } },
+            ],
+            responses: {
+                "200": { description: "ສຳເລັດ" },
+                "400": { description: "ຕ້ອງລະບຸ ID" },
+            },
+        },
+        put: {
+            summary: "ແກ້ໄຂຂໍ້ມູນໜ່ວຍບໍລິການ (Update Unit)",
+            tags: ["Organization - Units"],
+            security: [{ BearerAuth: [] }],
+            parameters: [
+                { name: "id", in: "path", required: true, schema: { type: "integer" } },
+            ],
+            requestBody: {
+                required: true,
+                content: {
+                    "application/json": {
+                        schema: {
+                            type: "object",
+                            properties: {
+                                name: { type: "string", example: "ໜ່ວຍບໍລິການ ຫຼັກ 2" },
+                            },
+                        },
+                    },
+                },
+            },
+            responses: {
+                "200": { description: "ແກ້ໄຂໜ່ວຍບໍລິການສຳເລັດ" },
+                "400": { description: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ" },
+            },
+        },
+    },
+    "/units/{id}/disable": {
+        patch: {
+            summary: "ປິດການໃຊ້ງານໜ່ວຍບໍລິການ (Disable Unit)",
+            tags: ["Organization - Units"],
+            security: [{ BearerAuth: [] }],
+            parameters: [
+                { name: "id", in: "path", required: true, schema: { type: "integer" } },
+            ],
+            responses: {
+                "200": { description: "ປິດການໃຊ້ງານໜ່ວຍບໍລິການສຳເລັດ" },
+                "400": { description: "ຕ້ອງລະບຸ ID" },
+            },
+        },
+    },
+    "/units/{id}/enable": {
+        patch: {
+            summary: "ເປີດການໃຊ້ງານໜ່ວຍບໍລິການ (Restore Unit)",
+            tags: ["Organization - Units"],
+            security: [{ BearerAuth: [] }],
+            parameters: [
+                { name: "id", in: "path", required: true, schema: { type: "integer" } },
+            ],
+            responses: {
+                "200": { description: "ເປີດການໃຊ້ງານໜ່ວຍບໍລິການສຳເລັດ" },
+                "400": { description: "ຕ້ອງລະບຸ ID" },
+            },
+        },
+    },
+};
