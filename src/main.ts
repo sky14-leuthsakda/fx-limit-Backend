@@ -1,54 +1,50 @@
 import { Hono } from "hono";
-import { swaggerUI } from "@hono/swagger-ui";
+import { apiReference } from "@scalar/hono-api-reference";
 import { serve } from "@hono/node-server";
 import { cors } from 'hono/cors';
 import { errorHandler } from "./middlewares/error.middleware.js";
 import { requestLogger } from "./middlewares/logger.middleware.js";
+import { ratelimiter } from "./middlewares/rateLimit.middleware.js";
 import apiRoutes from './features/API/api.route.js'
+import { swaggerSpec } from "./docs/swagger.js";
 
 const app = new Hono();
 
+// Logger
 app.use(requestLogger);
 
+// Rate Limit
+app.use("*", ratelimiter({ windowMs: 60 * 1000, max: 100 }));
+
+// Open cors Frontend Port
 app.use('*', cors({
-  origin: ['http://localhost:3001'],
+  origin: ['http://localhost:3000'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }))
 
+// Error Handler
 app.onError(errorHandler);
 
-// Swagger Spec Endpoint (Basic Spec)
-app.get('/doc', (c) => {
-  return c.json({
-    openapi: '3.0.0',
-    info: {
-      title: 'FX Limit System API',
-      version: '1.0.0',
-      description: 'API Documentation ສຳລັບທີມ Frontend',
-    },
-    paths: {
-      '/': {
-        get: {
-          summary: 'Check API Status',
-          responses: {
-            '200': { description: 'Successful response' },
-          },
-        },
-      },
-    },
-  });
+// Swagger/OpenAPI Spec Endpoint
+app.get('/docs', (c) => {
+  return c.json(swaggerSpec);
 });
 
-// Swagger UI Route
-app.get('/ui', swaggerUI({ url: '/doc' }));
+// Swagger API Reference UI Route
+app.get('/ui', apiReference({
+  spec: {
+    url: '/docs'
+  }
+}));
 
 app.get("/", (c) => c.json({ 
     success: true, 
     message: "FX Limit System API ພ້ອມໃຊ້ງານ" 
 }));
 
+// API
 app.route("/", apiRoutes);
 
 const port = Number(process.env.PORT ?? 3002);

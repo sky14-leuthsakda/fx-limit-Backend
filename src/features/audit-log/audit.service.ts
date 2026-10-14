@@ -5,7 +5,7 @@ import type {
     FxDailyLogQueryInput
 } from "./audit.schema.js";
 
-// ກວດຊ່ວງວັນທີ ແລະ Format ໃຫ້ກວມເອົາເຕັມວັນ (00:00:00 - 23:59:59)
+// Check the date range and format to cover the full day (00:00:00 - 23:59:59)
 const prepareDateRange = (
     dateFrom?: string, 
     dateTo?: string
