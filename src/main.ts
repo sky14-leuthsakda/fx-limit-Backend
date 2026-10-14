@@ -52,6 +52,7 @@ const port = Number(process.env.PORT ?? 3002);
 serve({ 
   fetch: app.fetch,
   port,
+  hostname: '0.0.0.0',
 });
 
 console.log(`🚀 FX Limit System API running on http://localhost:${port}`);
