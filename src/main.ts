@@ -19,7 +19,7 @@ app.use("*", ratelimiter({ windowMs: 60 * 1000, max: 100 }));
 // Open cors Frontend Port
 app.use('*', cors({
   origin: ['http://localhost:3000'],
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],       
   allowHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }))
