@@ -12,12 +12,13 @@ import type { Variables } from "../../middlewares/types.js";
 import { requirePermission } from "../../middlewares/permission.middleware.js";
 
 const orgRoutes = new Hono<{ Variables: Variables }>();
-const canManageUser = requirePermission("USER_MANAGE");
+const canManageORG = requirePermission("ORG_MANAGE");
 
+orgRoutes.use("*", authMiddleware);
 // =========================== Branches ================================
 
 // Create Branch
-orgRoutes.post("/branches", authMiddleware, canManageUser, async (c) => {
+orgRoutes.post("/branches", canManageORG, async (c) => {
     const body = await c.req.json();
     const validation = createBranchSchema.safeParse(body);
 
@@ -39,7 +40,7 @@ orgRoutes.post("/branches", authMiddleware, canManageUser, async (c) => {
 });
 
 // Branch All
-orgRoutes.get("/branches", authMiddleware, async (c) => {
+orgRoutes.get("/branches", async (c) => {
     const branches = await orgService.getAllBranches();
 
     return c.json({ 
@@ -49,7 +50,7 @@ orgRoutes.get("/branches", authMiddleware, async (c) => {
 });
 
 // Branch Paginated
-orgRoutes.get("/branches/paginated", authMiddleware, async (c) => {
+orgRoutes.get("/branches/paginated", async (c) => {
     const page = Number(c.req.query("page") ?? 1);
     const limit = Number(c.req.query("limit") ?? 20);
 
@@ -62,7 +63,7 @@ orgRoutes.get("/branches/paginated", authMiddleware, async (c) => {
 );
 
 // Branch By Id
-orgRoutes.get("/branches/:id", authMiddleware, async (c) => {
+orgRoutes.get("/branches/:id", async (c) => {
     const id = c.req.param("id");
     if (!id) {
         return c.json({
@@ -80,7 +81,7 @@ orgRoutes.get("/branches/:id", authMiddleware, async (c) => {
 });
 
 // Update Branch
-orgRoutes.put("/branches/:id", authMiddleware,canManageUser, async (c) => {
+orgRoutes.put("/branches/:id", canManageORG, async (c) => {
     const id = c.req.param("id");
     if (!id) {
         return c.json({ 
@@ -112,7 +113,7 @@ orgRoutes.put("/branches/:id", authMiddleware,canManageUser, async (c) => {
 });
 
 // Soft Delete
-orgRoutes.patch("/branches/:id/disable", authMiddleware, canManageUser, async (c) => {
+orgRoutes.patch("/branches/:id/disable", canManageORG, async (c) => {
     const id = c.req.param("id");
     if (!id) {
         return c.json({ 
@@ -131,7 +132,7 @@ orgRoutes.patch("/branches/:id/disable", authMiddleware, canManageUser, async (c
 });
 
 // Restore Branch
-orgRoutes.patch("/branches/:id/enable", authMiddleware, canManageUser, async (c) => {
+orgRoutes.patch("/branches/:id/enable", canManageORG, async (c) => {
     const id = c.req.param("id");
     if (!id) {
         return c.json({
@@ -152,7 +153,7 @@ orgRoutes.patch("/branches/:id/enable", authMiddleware, canManageUser, async (c)
 // ============================= Units ==================================
 
 // Create Unit
-orgRoutes.post("/units", authMiddleware, canManageUser, async (c) => {
+orgRoutes.post("/units", canManageORG, async (c) => {
     const body = await c.req.json();
     const validation = createUnitSchema.safeParse(body);
     
@@ -175,7 +176,7 @@ orgRoutes.post("/units", authMiddleware, canManageUser, async (c) => {
 });
 
 // Units All
-orgRoutes.get("/units",authMiddleware, async (c) => {
+orgRoutes.get("/units", async (c) => {
     const units = await orgService.getAllUnits();
     return c.json({ 
         success: true, 
@@ -185,7 +186,7 @@ orgRoutes.get("/units",authMiddleware, async (c) => {
 
 
 // Units Pagination
-orgRoutes.get("/units/paginated", authMiddleware, async (c) => {
+orgRoutes.get("/units/paginated", async (c) => {
     const page = Number(c.req.query("page") ?? 1);
     const limit = Number(c.req.query("limit") ?? 20);
 
@@ -199,7 +200,7 @@ orgRoutes.get("/units/paginated", authMiddleware, async (c) => {
 
 
 // Branch By Units
-orgRoutes.get("/branches/:branchId/units", authMiddleware,  async (c) => {
+orgRoutes.get("/branches/:branchId/units", async (c) => {
     const branchId = c.req.param("branchId");
     if (!branchId) {
         return c.json({ 
@@ -218,7 +219,7 @@ orgRoutes.get("/branches/:branchId/units", authMiddleware,  async (c) => {
 
 
 // Unit By Id
-orgRoutes.get("/units/:id", authMiddleware, async (c) => {
+orgRoutes.get("/units/:id", async (c) => {
     const id = c.req.param("id");
     if (!id) {
         return c.json({
@@ -237,7 +238,7 @@ orgRoutes.get("/units/:id", authMiddleware, async (c) => {
 
 
 // Update Unit
-orgRoutes.put("/units/:id", authMiddleware, canManageUser, async (c) => {
+orgRoutes.put("/units/:id", canManageORG, async (c) => {
     const id = c.req.param("id");
     if (!id) {
         return c.json({
@@ -269,7 +270,7 @@ orgRoutes.put("/units/:id", authMiddleware, canManageUser, async (c) => {
 
 
 // Soft Delete Unit
-orgRoutes.patch("/units/:id/disable", authMiddleware, canManageUser, async (c) => {
+orgRoutes.patch("/units/:id/disable", canManageORG, async (c) => {
     const id = c.req.param("id");
     if (!id) {
             return c.json({ 
@@ -289,7 +290,7 @@ orgRoutes.patch("/units/:id/disable", authMiddleware, canManageUser, async (c) =
 
 
 // Restore Unit
-orgRoutes.patch("/units/:id/enable", authMiddleware, canManageUser, async (c) => {
+orgRoutes.patch("/units/:id/enable", canManageORG, async (c) => {
     const id = c.req.param("id"); 
     if (!id) {
         return c.json({
