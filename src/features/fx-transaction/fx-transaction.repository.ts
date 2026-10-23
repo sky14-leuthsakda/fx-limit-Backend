@@ -137,7 +137,7 @@ export const updateTransaction = async (
     isActive: number,
     updatedBy: number
 ): Promise<number> => {
-    const [result] = await pool.query<ResultSetHeader[]>(
+    const [result] = await pool.query<ResultSetHeader>(
         "CALL sp_fx_daily_update(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
             txnId,
@@ -156,7 +156,7 @@ export const updateTransaction = async (
         ]
     );
 
-    return result[0]?.affectedRows ?? 0;
+    return result.affectedRows;
 };
 
 // Soft Delete Transaction
@@ -164,12 +164,12 @@ export const softDeleteTransaction = async (
     txnId: number, 
     deletedBy: number
 ): Promise<number> => {
-    const [result] = await pool.query<ResultSetHeader[]>(
+    const [result] = await pool.query<ResultSetHeader>(
         "CALL sp_fx_daily_soft_delete(?, ?)",
         [txnId, deletedBy]
     );
 
-    return result[0]?.affectedRows ?? 0;
+    return result.affectedRows;
 };
 
 // Restore Transaction
@@ -177,12 +177,12 @@ export const restoreTransaction = async (
     txnId: number, 
     updatedBy: number
 ) => {
-    const [result] = await pool.query<ResultSetHeader[]>(
+    const [result] = await pool.query<ResultSetHeader>(
         "CALL sp_fx_daily_restore(?, ?)",
         [txnId, updatedBy]
     );
 
-    return result[0]?.affectedRows ?? 0;
+    return result.affectedRows;
 };
 
 // Limit Check — ລວມຍອດ amount_usd ຂອງລູກຄ້າຕໍ່ເດືອນ
