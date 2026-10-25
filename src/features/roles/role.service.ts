@@ -36,6 +36,11 @@ export const getAllRoles = async () => {
   return await roleRepository.findAllRoles();
 };
 
+// Get Deleted Roles (Trash Bin)
+export const getDeletedRoles = async () => {
+  return await roleRepository.findDeletedRoles();
+};
+
 // Role By Id
 export const getRoleById = async (roleId: number) => {
   const role = await roleRepository.findRoleById(roleId);

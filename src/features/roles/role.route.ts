@@ -12,8 +12,11 @@ import { requirePermission } from "../../middlewares/permission.middleware.js";
 const roleRoutes = new Hono<{ Variables: Variables }>();
 const canManageUsers = requirePermission("USER_MANAGE");
 
+// Middleware & CanPermission
+roleRoutes.use('*', authMiddleware, canManageUsers);
+
 // Create Role
-roleRoutes.post("/", authMiddleware, canManageUsers, async (c) => {
+roleRoutes.post("/", async (c) => {
   const body = await c.req.json();
   const validation = createRoleSchema.safeParse(body);
 
@@ -36,17 +39,28 @@ roleRoutes.post("/", authMiddleware, canManageUsers, async (c) => {
 });
 
 // Roles All
-roleRoutes.get("/", authMiddleware, canManageUsers, async (c) => {
+roleRoutes.get("/", async (c) => {
   const roles = await roleService.getAllRoles();
   
   return c.json({ 
     success: true, 
+    message: "ດຶງລາຍຊື່ Roles ທັງຫມົດສຳເລັດ",
     data: roles 
   });
 });
 
+//Get Users Deleted
+roleRoutes.get("/deleted", async (c) => {
+  const deletedRoles = await roleService.getDeletedRoles();
+  return c.json({ 
+    success: true, 
+    message: "ດຶງລາຍຊື່ Roles ທີ່ຖືກລົບສຳເລັດ",
+    data: deletedRoles 
+  });
+});
+
 // Role By Id
-roleRoutes.get("/:id", authMiddleware, canManageUsers, async (c) => {
+roleRoutes.get("/:id", async (c) => {
   const id = c.req.param("id");
 
   if (!id) {
@@ -64,7 +78,7 @@ roleRoutes.get("/:id", authMiddleware, canManageUsers, async (c) => {
   });
 });
 
-roleRoutes.get("/:id/permissions", authMiddleware, canManageUsers, async (c) => {
+roleRoutes.get("/:id/permissions", async (c) => {
   const id = c.req.param("id");
 
   if (!id) return c.json({
@@ -82,7 +96,7 @@ roleRoutes.get("/:id/permissions", authMiddleware, canManageUsers, async (c) => 
 });
 
 // Update Role 
-roleRoutes.put("/:id", authMiddleware, canManageUsers, async (c) => {
+roleRoutes.put("/:id", async (c) => {
   const id = c.req.param("id");
 
   if (!id) {
@@ -114,7 +128,7 @@ roleRoutes.put("/:id", authMiddleware, canManageUsers, async (c) => {
 });
 
 // Soft Delete
-roleRoutes.patch("/:id/disable", authMiddleware, canManageUsers, async (c) => {
+roleRoutes.patch("/:id/disable", async (c) => {
   const id = c.req.param("id");
 
   if (!id) {
@@ -134,7 +148,7 @@ roleRoutes.patch("/:id/disable", authMiddleware, canManageUsers, async (c) => {
 });
 
 // Restore Role
-roleRoutes.patch("/:id/enable", authMiddleware, canManageUsers, async (c) => {
+roleRoutes.patch("/:id/enable", async (c) => {
   const id = c.req.param("id");
 
   if (!id) {
@@ -156,7 +170,7 @@ roleRoutes.patch("/:id/enable", authMiddleware, canManageUsers, async (c) => {
 // ==================== Role Permissions ====================
 
 // Attach 1 Permission To Role
-roleRoutes.post("/:id/permissions", authMiddleware, canManageUsers, async (c) => {
+roleRoutes.post("/:id/permissions", async (c) => {
   const id = c.req.param("id");
   if (!id) return c.json({ success: false, message: "ຕ້ອງລະບຸ ID" }, 400);
  
@@ -181,14 +195,15 @@ roleRoutes.post("/:id/permissions", authMiddleware, canManageUsers, async (c) =>
     userId
   );
  
-  return c.json(
-    { success: true, message: "ເພີ່ມ Permission ສຳເລັດ", data: permissions },
-    201
-  );
+  return c.json({ 
+    success: true, 
+    message: "ເພີ່ມ Permission ສຳເລັດ", 
+    data: permissions 
+  }, 201);
 });
 
 // Revoke Permission From Role 
-roleRoutes.delete("/:id/permissions/:permissionId", authMiddleware, canManageUsers, async (c) => {
+roleRoutes.delete("/:id/permissions/:permissionId",async (c) => {
   const id = c.req.param("id");
   const permissionId = c.req.param("permissionId");
  

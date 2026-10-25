@@ -32,6 +32,15 @@ export const findAllRoles = async () => {
     return result[0] ?? [];
 };
 
+// Get Deleted Roles (Trash Bin)
+export const findDeletedRoles = async () => {
+    const [result] = await pool.query<RowDataPacket[][]>(
+        "CALL sp_roles_get_deleted()"
+    );
+
+    return result[0] ?? [];
+};
+
 // Role By ID
 export const findRoleById = async (roleId: number) => {
     const [result] = await pool.query<RowDataPacket[][]>(
