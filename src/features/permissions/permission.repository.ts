@@ -30,6 +30,15 @@ export const findAllPermissions = async () => {
     return result[0] ?? []; 
 };
 
+// Get Deleted Permissions (Trash Bin)
+export const findDeletedPermissions = async () => {
+    const [result] = await pool.query<RowDataPacket[][]>(
+        "CALL sp_permissions_get_deleted()"
+    );
+
+    return result[0] ?? [];
+};
+
 export const findPermissionById = async (permissionId: number) => {
     const [result] = await pool.query<RowDataPacket[][]>(
         "CALL sp_permissions_get_by_id(?)",

@@ -32,6 +32,10 @@ export const getAllPermissions = async () => {
     return permissionRepository.findAllPermissions();
 }
 
+// Get Deleted Permissions
+export const getDeletedPermissions = async () => {
+    return await permissionRepository.findDeletedPermissions();
+};
 
 export const getPermissionById = async (permissionId: number) => {
     const permission = await permissionRepository.findPermissionById(permissionId);

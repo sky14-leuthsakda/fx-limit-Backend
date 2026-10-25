@@ -11,8 +11,10 @@ import { requirePermission } from "../../middlewares/permission.middleware.js";
 const permissionRoutes = new Hono<{ Variables: Variables }>();
 const canManageUsers = requirePermission("USER_MANAGE");
 
+permissionRoutes.use('*', authMiddleware, canManageUsers);
+
 // Create New Permission
-permissionRoutes.post("/", authMiddleware,canManageUsers, async (c) => {
+permissionRoutes.post("/", async (c) => {
     const body = await c.req.json();
     const validation =  createPermissionSchema.safeParse(body);
 
@@ -21,7 +23,7 @@ permissionRoutes.post("/", authMiddleware,canManageUsers, async (c) => {
             success: false,
             message: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ",
             errors: validation.error.issues
-        },400);
+        }, 400);
     }
     
     const { userId } = c.get("user");
@@ -35,17 +37,27 @@ permissionRoutes.post("/", authMiddleware,canManageUsers, async (c) => {
 });
 
 // Get All Permission 
-permissionRoutes.get("/", authMiddleware, canManageUsers, async (c) => {
+permissionRoutes.get("/", async (c) => {
     const permissions = await permissionService.getAllPermissions();
     return c.json({
         success: true,
-        message: "ດຶງຂໍ້ມູນສິດການໃຊ້ງານສຳເລັດ",
+        message: "ດຶງຂໍ້ມູນສິດການໃຊ້ງານທັງຫມົດສຳເລັດ",
         data: permissions
     }, 200);
 });
 
+// Get Deleted Permissions (Trash Bin)
+permissionRoutes.get("/deleted", async (c) => {
+    const deletedPermissions = await permissionService.getDeletedPermissions();
+    return c.json({ 
+        success: true,
+        message: "ດຶງຂໍ້ມູນສິດການໃຊ້ງານທີ່ຖືກລົບສຳເລັດ", 
+        data: deletedPermissions 
+    });
+});
+
 // Permission By Id     
-permissionRoutes.get("/:id", authMiddleware, canManageUsers, async (c) => {
+permissionRoutes.get("/:id", async (c) => {
     const id = c.req.param("id");
 
     if (!id) {
@@ -59,12 +71,13 @@ permissionRoutes.get("/:id", authMiddleware, canManageUsers, async (c) => {
 
     return c.json({
         success: true,
+        message: "ດຶງຂໍ້ມູນສິດການໃຊ້ງານສຳເລັດ",
         data: permission
     }, 200);
 });
 
 // Update Permission
-permissionRoutes.put("/:id", authMiddleware, canManageUsers, async (c) => {
+permissionRoutes.put("/:id", async (c) => {
     const id = c.req.param("id");
 
     if (!id) {
@@ -91,13 +104,13 @@ permissionRoutes.put("/:id", authMiddleware, canManageUsers, async (c) => {
         
         return c.json({
             success: true,
-            message: "ແກ້ໄຂສິດການໃຊ້ສຳເລັດ",
+            message: "ແກ້ໄຂສິດການໃຊ້ງານສຳເລັດ",
             data: updatedPermission
         }, 200);
     });
 
 // Soft Delete Permission
-permissionRoutes.patch("/:id/disable", authMiddleware, canManageUsers, async (c) => {
+permissionRoutes.patch("/:id/disable", async (c) => {
     const id = c.req.param("id");
 
     if (!id) {
@@ -112,12 +125,12 @@ permissionRoutes.patch("/:id/disable", authMiddleware, canManageUsers, async (c)
 
     return c.json({
         success: true,
-        message: "ປິດການໃຊ້ງານ Permission ສຳເລັດ"
+        message: "ປິດການໃຊ້ງານສີດການໃຊ້ງານສຳເລັດ"
     }, 200);
 });
 
 // Restore Permission
-permissionRoutes.patch("/:id/enable", authMiddleware, canManageUsers, async (c) => {
+permissionRoutes.patch("/:id/enable", async (c) => {
     const id = c.req.param("id"); 
 
     if (!id) { 
@@ -132,7 +145,7 @@ permissionRoutes.patch("/:id/enable", authMiddleware, canManageUsers, async (c) 
 
     return c.json({
         success: true,
-        message: "ເປີດການໃຊ້ Permission ສຳເລັດ"
+        message: "ເປີດການໃຊ້ງານສິດການໃຊ້ງານສຳເລັດ"
     }, 200);
 });
 
