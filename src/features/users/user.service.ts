@@ -83,6 +83,11 @@ export const getUserById = async (userId: number) => {
     return user;
 };
 
+// Get Deleted Users (Trash Bin)
+export const getDeletedUsers = async () => {
+    return await userRepository.findDeletedUsers();
+};
+
 // Update User
 export const updateExistingUser = async (
     userId: number, 

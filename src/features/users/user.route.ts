@@ -12,8 +12,10 @@ import { requirePermission } from "../../middlewares/permission.middleware.js";
 const userRoutes = new Hono<{ Variables: Variables }>();
 const canManageUsers = requirePermission("USER_MANAGE");
 
+userRoutes.use('*', authMiddleware, canManageUsers);
+
 // Create User 
-userRoutes.post("/", authMiddleware, canManageUsers, async (c) => {
+userRoutes.post("/", async (c) => {
   const body = await c.req.json();
   const validation = createUserSchema.safeParse(body);
 
@@ -36,7 +38,7 @@ userRoutes.post("/", authMiddleware, canManageUsers, async (c) => {
 });
 
 // Assign Role To User
-userRoutes.post("/:id/roles", authMiddleware, canManageUsers, async (c) => {
+userRoutes.post("/:id/roles", async (c) => {
   const id = c.req.param("id");
 
   if (!id) {
@@ -72,7 +74,7 @@ userRoutes.post("/:id/roles", authMiddleware, canManageUsers, async (c) => {
 })
 
 // User All
-userRoutes.get("/", authMiddleware, canManageUsers, async (c) => {
+userRoutes.get("/", async (c) => {
   const users = await userService.getAllUsers();
 
   return c.json({
@@ -83,7 +85,7 @@ userRoutes.get("/", authMiddleware, canManageUsers, async (c) => {
 });
 
 // User Paginated
-userRoutes.get("/paginated", authMiddleware, canManageUsers, async (c) => {
+userRoutes.get("/paginated", async (c) => {
   const page = Number(c.req.query("page") ?? 1);
   const limit = Number(c.req.query("limit") ?? 10);
 
@@ -96,8 +98,19 @@ userRoutes.get("/paginated", authMiddleware, canManageUsers, async (c) => {
   });
 });
 
+// Get Deleted Users (Trash Bin)
+userRoutes.get("/deleted", async (c) => {
+  const deletedUsers = await userService.getDeletedUsers();
+
+  return c.json({
+    success: true,
+    message: "ດຶງລາຍຊື່ຜູ້ໃຊ້ທີ່ຖືກລົບສຳເລັດ",
+    data: deletedUsers
+  }, 200);
+});
+
 // User By Id 
-userRoutes.get("/:id", authMiddleware, canManageUsers, async (c) => {
+userRoutes.get("/:id", async (c) => {
   const id = c.req.param("id");
 
   if (!id) {
@@ -116,7 +129,7 @@ userRoutes.get("/:id", authMiddleware, canManageUsers, async (c) => {
 });
 
 // User Role 
-userRoutes.get("/:id/roles", authMiddleware, canManageUsers, async (c) => {
+userRoutes.get("/:id/roles", async (c) => {
   const id = c.req.param("id");
 
   if (!id) {
@@ -136,7 +149,7 @@ userRoutes.get("/:id/roles", authMiddleware, canManageUsers, async (c) => {
 })
 
 // Update User 
-userRoutes.put("/:id", authMiddleware, canManageUsers, async (c) => {
+userRoutes.put("/:id", async (c) => {
   const id = c.req.param("id");
 
   if (!id) {
@@ -173,7 +186,7 @@ userRoutes.put("/:id", authMiddleware, canManageUsers, async (c) => {
 
 
 // Soft Delete User
-userRoutes.patch("/:id/disable", authMiddleware, canManageUsers, async (c) => {
+userRoutes.patch("/:id/disable", async (c) => {
   const id = c.req.param("id");
 
   if (!id) {
@@ -193,7 +206,7 @@ userRoutes.patch("/:id/disable", authMiddleware, canManageUsers, async (c) => {
 });
 
 // Restore User 
-userRoutes.patch("/:id/enable", authMiddleware, canManageUsers, async (c) => {
+userRoutes.patch("/:id/enable", async (c) => {
   const id = c.req.param("id");
   
   if (!id) {
@@ -213,7 +226,7 @@ userRoutes.patch("/:id/enable", authMiddleware, canManageUsers, async (c) => {
 });
 
 // Remove Role User
-userRoutes.delete("/:id/roles/:roleId", authMiddleware, canManageUsers, async (c) => {
+userRoutes.delete("/:id/roles/:roleId", async (c) => {
   const Uid = c.req.param("id");
   const Rid = c.req.param("roleId");
 

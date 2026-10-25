@@ -67,6 +67,15 @@ export const findUserById = async (userId: number) => {
 
 };
 
+// Get Deleted Users
+export const findDeletedUsers = async () => {
+    const [result] = await pool.query<RowDataPacket[][]>(
+        "CALL sp_users_get_deleted()"
+    );
+
+    return result[0] ?? [];
+};
+
 // Update User
 export const updateUser = async (
   userId: number,
