@@ -12,10 +12,11 @@ export const organizationDocs = {
                         schema: {
                             type: "object",
                             properties: {
-                                name: { type: "string", example: "ສາຂາໃຫຍ່ ວຽງຈັນ" },
-                                code: { type: "string", example: "VTE-001" },
+                                branchCode: { type: "string", example: "VTE-001" },
+                                branchNameEn: { type: "string", example: "Vientiane Branch" },
+                                branchNameLo: { type: "string", example: "ສາຂາ ວຽງຈັນ" },
                             },
-                            required: ["name", "code"],
+                            required: ["branchCode", "branchNameEn", "branchNameLo"],
                         },
                     },
                 },
@@ -24,6 +25,7 @@ export const organizationDocs = {
                 "201": { description: "ສ້າງສາຂາສຳເລັດ" },
                 "400": { description: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ" },
                 "401": { description: "Unauthorized" },
+                "409": { description: "ລະຫັດສາຂານີ້ມີຢູ່ແລ້ວ" },
             },
         },
         get: {
@@ -32,6 +34,17 @@ export const organizationDocs = {
             security: [{ BearerAuth: [] }],
             responses: {
                 "200": { description: "ດຶງຂໍ້ມູນສຳເລັດ" },
+                "401": { description: "Unauthorized" },
+            },
+        },
+    },
+    "/branches/deleted": {
+        get: {
+            summary: "ດຶງລາຍຊື່ສາຂາທີ່ຖືກລົບ / Trash Bin (Get Deleted Branches)",
+            tags: ["Organization - Branches"],
+            security: [{ BearerAuth: [] }],
+            responses: {
+                "200": { description: "ດຶງຂໍ້ມູນສາຂາທີ່ຖືກລົບສຳເລັດ" },
                 "401": { description: "Unauthorized" },
             },
         },
@@ -61,6 +74,7 @@ export const organizationDocs = {
             responses: {
                 "200": { description: "ສຳເລັດ" },
                 "400": { description: "ຕ້ອງລະບຸ ID" },
+                "404": { description: "ບໍ່ພົບສາຂາ" },
             },
         },
         put: {
@@ -77,7 +91,10 @@ export const organizationDocs = {
                         schema: {
                             type: "object",
                             properties: {
-                                name: { type: "string", example: "ສາຂາ ຫຼວງພະບາງ" },
+                                branchCode: { type: "string", example: "LPQ-001" },
+                                branchNameEn: { type: "string", example: "Luang Prabang Branch" },
+                                branchNameLo: { type: "string", example: "ສາຂາ ຫຼວງພະບາງ" },
+                                isActive: { type: "integer", example: 1 },
                             },
                         },
                     },
@@ -86,12 +103,14 @@ export const organizationDocs = {
             responses: {
                 "200": { description: "ແກ້ໄຂສາຂາສຳເລັດ" },
                 "400": { description: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ" },
+                "404": { description: "ບໍ່ພົບສາຂາ" },
+                "409": { description: "Branch Code ນີ້ມີຢູ່ແລ້ວ" },
             },
         },
     },
     "/branches/{id}/disable": {
         patch: {
-            summary: "ປິດການໃຊ້ງານສາຂາ (Disable Branch)",
+            summary: "ປິດການໃຊ້ງານສາຂາ / Soft Delete (Disable Branch)",
             tags: ["Organization - Branches"],
             security: [{ BearerAuth: [] }],
             parameters: [
@@ -99,7 +118,8 @@ export const organizationDocs = {
             ],
             responses: {
                 "200": { description: "ປິດການໃຊ້ງານສາຂາສຳເລັດ" },
-                "400": { description: "ຕ້ອງລະບຸ ID" },
+                "400": { description: "ຍັງມີ Unit ຢູ່ພາຍໃຕ້" },
+                "404": { description: "ບໍ່ພົບສາຂາ" },
             },
         },
     },
@@ -114,6 +134,8 @@ export const organizationDocs = {
             responses: {
                 "200": { description: "ເປີດການໃຊ້ງານສາຂາສຳເລັດ" },
                 "400": { description: "ຕ້ອງລະບຸ ID" },
+                "404": { description: "ບໍ່ພົບສາຂາ" },
+                
             },
         },
     },
@@ -145,10 +167,12 @@ export const organizationDocs = {
                         schema: {
                             type: "object",
                             properties: {
-                                name: { type: "string", example: "ໜ່ວຍບໍລິການ ຕະຫຼາດເຊົ້າ" },
                                 branchId: { type: "integer", example: 1 },
+                                unitCode: { type: "string", example: "UNIT-01" },
+                                unitNameEn: { type: "string", example: "Central Market Unit" },
+                                unitNameLo: { type: "string", example: "ໜ່ວຍບໍລິການ ຕະຫຼາດເຊົ້າ" },
                             },
-                            required: ["name", "branchId"],
+                            required: ["branchId", "unitCode", "unitNameEn", "unitNameLo"],
                         },
                     },
                 },
@@ -157,6 +181,7 @@ export const organizationDocs = {
                 "201": { description: "ສ້າງໜ່ວຍບໍລິການສຳເລັດ" },
                 "400": { description: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ" },
                 "401": { description: "Unauthorized" },
+                "409": { description: "Unit Code ນີ້ມີຢູ່ແລ້ວໃນ Branch ນี้" },
             },
         },
         get: {
@@ -165,6 +190,17 @@ export const organizationDocs = {
             security: [{ BearerAuth: [] }],
             responses: {
                 "200": { description: "ດຶງຂໍ້ມູນສຳເລັດ" },
+                "401": { description: "Unauthorized" },
+            },
+        },
+    },
+    "/units/deleted": {
+        get: {
+            summary: "ດຶງລາຍຊື່ໜ່ວຍບໍລິການທີ່ຖືກລົບ / Trash Bin (Get Deleted Units)",
+            tags: ["Organization - Units"],
+            security: [{ BearerAuth: [] }],
+            responses: {
+                "200": { description: "ດຶງຂໍ້ມູນໜ່ວຍບໍລິການທີ່ຖືກລົບສຳເລັດ" },
                 "401": { description: "Unauthorized" },
             },
         },
@@ -194,6 +230,7 @@ export const organizationDocs = {
             responses: {
                 "200": { description: "ສຳເລັດ" },
                 "400": { description: "ຕ້ອງລະບຸ ID" },
+                "404": { description: "ບໍ່ພົບ Unit" },
             },
         },
         put: {
@@ -210,7 +247,11 @@ export const organizationDocs = {
                         schema: {
                             type: "object",
                             properties: {
-                                name: { type: "string", example: "ໜ່ວຍບໍລິການ ຫຼັກ 2" },
+                                branchId: { type: "integer", example: 1 },
+                                unitCode: { type: "string", example: "UNIT-02" },
+                                unitNameEn: { type: "string", example: "Updated Unit" },
+                                unitNameLo: { type: "string", example: "ໜ່ວຍບໍລິການ ອັບເດດ" },
+                                isActive: { type: "integer", example: 1 },
                             },
                         },
                     },
@@ -219,6 +260,8 @@ export const organizationDocs = {
             responses: {
                 "200": { description: "ແກ້ໄຂໜ່ວຍບໍລິການສຳເລັດ" },
                 "400": { description: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ" },
+                "404": { description: "ບໍ່ພົບ Unit" },
+                "409": { description: "Unit Code ນີ້ມີຢູ່ແລ້ວໃນສາຂານີ້" },
             },
         },
     },
@@ -233,6 +276,7 @@ export const organizationDocs = {
             responses: {
                 "200": { description: "ປິດການໃຊ້ງານໜ່ວຍບໍລິການສຳເລັດ" },
                 "400": { description: "ຕ້ອງລະບຸ ID" },
+                "404": { description: "ບໍ່ພົບ Unit" },
             },
         },
     },
@@ -247,6 +291,7 @@ export const organizationDocs = {
             responses: {
                 "200": { description: "ເປີດການໃຊ້ງານໜ່ວຍບໍລິການສຳເລັດ" },
                 "400": { description: "ຕ້ອງລະບຸ ID" },
+                "404": { description: "ບໍ່ພົບ Unit" },
             },
         },
     },

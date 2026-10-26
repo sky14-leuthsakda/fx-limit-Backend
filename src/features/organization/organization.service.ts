@@ -7,7 +7,7 @@ import type {
     UpdateUnitInput
 } from "./organization.schema.js";
 
-// ============================== BRANCHES =============================
+// ================== BRANCHES ======================
 
 export const createNewBranch = async (
     data: CreateBranchInput,
@@ -59,6 +59,10 @@ export const getPaginatedBranches = async (
     };
 };
 
+export const getDeletedBranches = async () => {
+    return await orgRepository.findDeletedBranches();
+};
+
 export const getBranchById = async (branchId: number) => {
     const branch = await orgRepository.findBranchById(branchId);
 
@@ -82,7 +86,7 @@ export const updateExistingBranch = async (
             data.branchCode ?? existingBranch.branch_code,
             data.branchNameEn ?? existingBranch.branch_name_en,
             data.branchNameLo ?? existingBranch.branch_name_lo,
-            data.isActive ?? Boolean(existingBranch.is_active),
+            data.isActive ?? existingBranch.is_active,
             updatedBy
         );
 
@@ -127,7 +131,7 @@ export const restoreBranch = async (
     }
 };
 
-// ============================== UNITS ===============================
+// =============== UNITS =================
 
 export const createNewUnit = async (
     data: CreateUnitInput,
@@ -190,6 +194,10 @@ export const getPaginatedUnit = async (
     };
 };
 
+export const getDeletedUnits = async () => {
+    return await orgRepository.findDeletedUnits();
+};
+
 export const getUnitById = async (unitId: number) => {
     const unit = await orgRepository.findUnitById(unitId);
 
@@ -223,7 +231,7 @@ export const updateExistingUnit = async (
             data.unitCode ?? existingUnit.unit_code,
             data.unitNameEn ?? existingUnit.unit_name_en,
             data.unitNameLo ?? existingUnit.unit_name_lo,
-            data.isActive ?? Boolean(existingUnit.is_active),
+            data.isActive ?? existingUnit.is_active,
             updatedBy
         );
 

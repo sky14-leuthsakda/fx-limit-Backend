@@ -1,7 +1,7 @@
 import pool from "../../connector/db.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
-// ====================================== BRANCHES ============================================
+// ==================== BRANCHES ======================
 
 export const createBranch = async (
     branchCode: string, 
@@ -44,6 +44,14 @@ export const findBranchesPaginated = async (
     };
 }
 
+export const findDeletedBranches = async () => {
+    const [result] = await pool.query<RowDataPacket[][]>(
+        "CALL sp_branches_get_deleted()"
+    );
+
+    return result[0] ?? [];
+};
+
 export const findBranchById = async (branchId: number) => {
     const [result] = await pool.query<RowDataPacket[][]>(
         "CALL sp_branches_get_by_id(?)",
@@ -59,7 +67,7 @@ export const updateBranch = async (
     branchCode: string,
     branchNameEn: string,
     branchNameLo: string,
-    isActive: boolean,
+    isActive: number,
     updatedBy: number
 ) => {
     const [result] = await pool.query<ResultSetHeader>(
@@ -69,7 +77,7 @@ export const updateBranch = async (
             branchCode,
             branchNameEn,
             branchNameLo,
-            isActive ? 1 : 0,
+            isActive,
             updatedBy
         ]
     );
@@ -147,6 +155,14 @@ export const findUnitsPaginated = async (
     };
 };
 
+export const findDeletedUnits = async () => {
+    const [result] = await pool.query<RowDataPacket[][]>(
+        "CALL sp_units_get_deleted()"
+    );
+
+    return result[0] ?? [];
+};
+
 export const findUnitById = async (unitId: number) => {
     const [result] = await pool.query<RowDataPacket[][]>(
         "CALL sp_units_get_by_id(?)",
@@ -171,7 +187,7 @@ export const updateUnit = async (
     unitCode: string,
     unitNameEn: string,
     unitNameLo: string,
-    isActive: boolean,
+    isActive: number,
     updatedBy: number
 ) => {
     const [result] = await pool.query<ResultSetHeader>(
@@ -182,7 +198,7 @@ export const updateUnit = async (
             unitCode,
             unitNameEn,
             unitNameLo,
-            isActive ? 1 : 0,
+            isActive,
             updatedBy
         ]
     );

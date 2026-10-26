@@ -25,7 +25,7 @@ export const updateBranchSchema = z.object({
         .min(1, "ຊື່ສາຂາ (ລາວ) ຕ້ອງບໍ່ວ່າງເປົ່າ")
         .max(150, "ຊື່ສາຂາ (ລາວ) ຍາວເກີນ 150 ຕົວອັກສອນ")
         .optional(),
-    isActive: z.boolean().optional(),
+    isActive: z.number().int().min(0).max(1).optional(),
 });
 
 export const createUnitSchema = z.object({
@@ -55,7 +55,7 @@ export const updateUnitSchema = z.object({
         .min(1, "ຊື່ຫນ່ວຍບໍລິການ (ລາວ) ຕ້ອງບໍ່ວ່າງເປົ່າ")
         .max(150, "ຊື່ຫນ່ວຍບໍລິການ (ລາວ) ຍາວເກີນ 150 ຕົວອັກສອນ")
         .optional(),
-    isActive: z.boolean().optional(),
+    isActive: z.number().int().min(0).max(1).optional(),
 })
 
 

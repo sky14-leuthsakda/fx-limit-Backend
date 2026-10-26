@@ -14,11 +14,11 @@ import { requirePermission } from "../../middlewares/permission.middleware.js";
 const orgRoutes = new Hono<{ Variables: Variables }>();
 const canManageORG = requirePermission("ORG_MANAGE");
 
-orgRoutes.use("*", authMiddleware);
-// =========================== Branches ================================
+orgRoutes.use("*", authMiddleware, canManageORG);
+// =================== Branches ======================
 
 // Create Branch
-orgRoutes.post("/branches", canManageORG, async (c) => {
+orgRoutes.post("/branches", async (c) => {
     const body = await c.req.json();
     const validation = createBranchSchema.safeParse(body);
 
@@ -26,7 +26,8 @@ orgRoutes.post("/branches", canManageORG, async (c) => {
     return c.json({ 
         success: false, 
         message: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ", 
-        errors: validation.error.issues }, 400);
+        errors: validation.error.issues 
+        }, 400);
     }
 
     const { userId } = c.get("user");
@@ -44,7 +45,8 @@ orgRoutes.get("/branches", async (c) => {
     const branches = await orgService.getAllBranches();
 
     return c.json({ 
-        success: true, 
+        success: true,
+        message: "ດຶງລາຍການສາຂາທັງຫມົດສຳເລັດ", 
         data: branches 
     });
 });
@@ -61,6 +63,16 @@ orgRoutes.get("/branches/paginated", async (c) => {
         });
     }
 );
+
+// Get Deleted Branches (Trash Bin)
+orgRoutes.get("/branches/deleted", async (c) => {
+    const deletedBranches = await orgService.getDeletedBranches();
+    return c.json({
+        success: true,
+        message: "ດຶງຂໍ້ມູນສາຂາທີ່ຖືກລົບສຳເລັດ",
+        data: deletedBranches
+    });
+});
 
 // Branch By Id
 orgRoutes.get("/branches/:id", async (c) => {
@@ -150,7 +162,7 @@ orgRoutes.patch("/branches/:id/enable", canManageORG, async (c) => {
     });
 });
 
-// ============================= Units ==================================
+// ================ Units ==================
 
 // Create Unit
 orgRoutes.post("/units", canManageORG, async (c) => {
@@ -180,6 +192,7 @@ orgRoutes.get("/units", async (c) => {
     const units = await orgService.getAllUnits();
     return c.json({ 
         success: true, 
+        message: "ດຶງລາຍການຫນ່ວຍບໍລິການທັງຫມົດສຳເລັດ",
         data: units 
     });
 });
@@ -195,6 +208,16 @@ orgRoutes.get("/units/paginated", async (c) => {
     return c.json({
         success: true,
         ...result
+    });
+});
+
+// Get Deleted Units (Trash Bin)
+orgRoutes.get("/units/deleted", async (c) => {
+    const deletedUnits = await orgService.getDeletedUnits();
+    return c.json({
+        success: true,
+        message: "ດຶງຂໍ້ມູນໜ່ວຍບໍລິການທີ່ຖືກລົບສຳເລັດ",
+        data: deletedUnits
     });
 });
 
