@@ -50,7 +50,7 @@ fxTransactionRoutes.get("/", canViewFx, async (c) => {
 });
 
 // Get Deleted Transactions (Trash Bin)
-fxTransactionRoutes.get("/deleted", authMiddleware, async (c) => {
+fxTransactionRoutes.get("/deleted", canEditFx, async (c) => {
     const deletedTransactions = await fxTransactionService.getDeletedTransactions();
     return c.json({
         success: true,
