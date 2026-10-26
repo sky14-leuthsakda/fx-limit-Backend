@@ -29,6 +29,11 @@ export const getAllRates = async () => {
     return await rateRepository.findRateAll();
 };
 
+// Get Deleted Rates (Trash Bin)
+export const getDeletedRates = async () => {
+    return await rateRepository.findDeletedRates();
+};
+
 // Rates Paginated
 export const getRatePaginated = async (
     page: number, 

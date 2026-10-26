@@ -30,6 +30,15 @@ export const findRateAll = async () => {
     return result[0] ?? [];
 };
 
+// Get Deleted Rates (Trash Bin)
+export const findDeletedRates = async () => {
+    const [result] = await pool.query<RowDataPacket[][]>(
+        "CALL sp_ex_rate_daily_get_deleted()"
+    );
+
+    return result[0] ?? [];
+};
+
 // Rates Paginated
 export const findRatesPaginated = async (
     page: number, 

@@ -11,11 +11,11 @@ export const exchangeRateDocs = {
                         schema: {
                             type: "object",
                             properties: {
+                                rateDate: { type: "string", example: "2026-10-26" },
                                 currencyId: { type: "integer", example: 1 },
-                                buyRate: { type: "number", example: 21500 },
-                                sellRate: { type: "number", example: 21700 },
+                                rate: { type: "number", example: 21500.50 },
                             },
-                            required: ["currencyId", "buyRate", "sellRate"],
+                            required: ["rateDate", "currencyId", "rate"],
                         },
                     },
                 },
@@ -24,6 +24,7 @@ export const exchangeRateDocs = {
                 "201": { description: "ບັນທຶກອັດຕາແລກປ່ຽນສຳເລັດ" },
                 "400": { description: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ" },
                 "401": { description: "Unauthorized" },
+                "409": { description: "ມີອັດຕາແລກປ່ຽນຂອງສະກຸນເງິນນີ້ສຳລັບວັນທີນີ້ຢູ່ແລ້ວ" },
             },
         },
         get: {
@@ -32,6 +33,17 @@ export const exchangeRateDocs = {
             security: [{ BearerAuth: [] }],
             responses: {
                 "200": { description: "ດຶງຂໍ້ມູນສຳເລັດ" },
+                "401": { description: "Unauthorized" },
+            },
+        },
+    },
+    "/rates/deleted": {
+        get: {
+            summary: "ດຶງລາຍຊື່អັດຕາແລກປ່ຽນທີ່ຖືກລົບ / Trash Bin (Get Deleted Exchange Rates)",
+            tags: ["Exchange Rates"],
+            security: [{ BearerAuth: [] }],
+            responses: {
+                "200": { description: "ດຶງຂໍ້ມູນອັດຕາແລກປ່ຽນທີ່ຖືກລົບສຳເລັດ" },
                 "401": { description: "Unauthorized" },
             },
         },
@@ -71,6 +83,7 @@ export const exchangeRateDocs = {
             responses: {
                 "200": { description: "ສຳເລັດ" },
                 "400": { description: "ຕ້ອງລະບຸ Currency ID" },
+                "404": { description: "ຍັງບໍ່ມີອັດຕາແລກປ່ຽນສຳລັບມື້ນີ້" },
             },
         },
     },
@@ -100,6 +113,7 @@ export const exchangeRateDocs = {
             responses: {
                 "200": { description: "ສຳເລັດ" },
                 "400": { description: "ຕ້ອງລະບຸ ID" },
+                "404": { description: "ບໍ່ພົບ Rate" },
             },
         },
         put: {
@@ -116,8 +130,10 @@ export const exchangeRateDocs = {
                         schema: {
                             type: "object",
                             properties: {
-                                buyRate: { type: "number", example: 21600 },
-                                sellRate: { type: "number", example: 21800 },
+                                rateDate: { type: "string", example: "2026-10-26" },
+                                currencyId: { type: "integer", example: 1 },
+                                rate: { type: "number", example: 21600.00 },
+                                isActive: { type: "integer", example: 1 },
                             },
                         },
                     },
@@ -126,12 +142,14 @@ export const exchangeRateDocs = {
             responses: {
                 "200": { description: "ການອັບເດດອັດຕາແລກປ່ຽນສຳເລັດ" },
                 "400": { description: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ" },
+                "404": { description: "ບໍ່ພົບ Rate" },
+                "409": { description: "ມີອັດຕາແລກປ່ຽນຂອງສະກຸນເງິນນີ້ສຳລັບວັນທີນີ້ຢູ່ແລ້ວ" },
             },
         },
     },
     "/rates/{id}/disable": {
         patch: {
-            summary: "ປິດການໃຊ້ງານອັດຕາແລກປ່ຽນ (Disable Exchange Rate)",
+            summary: "ປິດການໃຊ້ງານອັດຕາແລກປ່ຽນ / Soft Delete (Disable Exchange Rate)",
             tags: ["Exchange Rates"],
             security: [{ BearerAuth: [] }],
             parameters: [
@@ -140,12 +158,13 @@ export const exchangeRateDocs = {
             responses: {
                 "200": { description: "ການລຶບອັດຕາແລກປ່ຽນສຳເລັດ" },
                 "400": { description: "ຕ້ອງລະບຸ ID" },
+                "404": { description: "ບໍ່ພົບ Rate" },
             },
         },
     },
     "/rates/{id}/enable": {
         patch: {
-            summary: "ເປີດການໃຊ້ງານອັດຕາແລກປ່ຽນ (Restore Exchange Rate)",
+            summary: "ເປີດການໃຊ້ງານອັດຕາແລກປ່ຽນ / Restore (Restore Exchange Rate)",
             tags: ["Exchange Rates"],
             security: [{ BearerAuth: [] }],
             parameters: [
@@ -154,6 +173,7 @@ export const exchangeRateDocs = {
             responses: {
                 "200": { description: "ການກູ້ຄືນອັດຕາແລກປ່ຽນສຳເລັດ" },
                 "400": { description: "ຕ້ອງລະບຸ ID" },
+                "404": { description: "ບໍ່ພົບ Rate" },
             },
         },
     },

@@ -8,8 +8,10 @@ import type { Variables } from "../../middlewares/types.js";
 const rateRoutes = new Hono<{ Variables: Variables}>();
 const canEditConfig = requirePermission("CONFIG_EDIT");
 
+rateRoutes.use('*', authMiddleware);
+
 // Create New Rate
-rateRoutes.post("/", authMiddleware, canEditConfig, async (c) => {
+rateRoutes.post("/", canEditConfig, async (c) => {
     const body = await c.req.json();
     const validation = createRateSchema.safeParse(body);
 
@@ -32,7 +34,7 @@ rateRoutes.post("/", authMiddleware, canEditConfig, async (c) => {
 });
 
 // Rate All
-rateRoutes.get("/", authMiddleware, async (c) => {
+rateRoutes.get("/", async (c) => {
     const rates = await rateService.getAllRates();
     return c.json({
         success: true,
@@ -41,7 +43,7 @@ rateRoutes.get("/", authMiddleware, async (c) => {
 });
 
 // Rate Paginated
-rateRoutes.get("/paginated", authMiddleware, async (c) => {
+rateRoutes.get("/paginated", async (c) => {
     const page = Number(c.req.query("page") ?? 1);
     const limit = Number(c.req.query("limit") ?? 20);
 
@@ -55,7 +57,7 @@ rateRoutes.get("/paginated", authMiddleware, async (c) => {
 });
 
 // Today's Rate All
-rateRoutes.get("/today", authMiddleware, async (c) => {
+rateRoutes.get("/today", async (c) => {
     const rates = await rateService.getTodayAllRates();
     return c.json({
         success: true,
@@ -63,9 +65,18 @@ rateRoutes.get("/today", authMiddleware, async (c) => {
     });
 });
 
+// Get Deleted Rates (Trash Bin)
+rateRoutes.get("/deleted", async (c) => {
+    const deletedRates = await rateService.getDeletedRates();
+    return c.json({
+        success: true,
+        message: "ດຶງຂໍ້ມູນອັດຕາແລກປ່ຽນທີ່ຖືກລົບສຳເລັດ",
+        data: deletedRates
+    });
+});
 
 // Today's Rate By CurrencyID
-rateRoutes.get("/today/:currencyId", authMiddleware, async (c) => {
+rateRoutes.get("/today/:currencyId", async (c) => {
     const currencyId = c.req.param("currencyId");
 
     if (!currencyId)
@@ -83,7 +94,7 @@ rateRoutes.get("/today/:currencyId", authMiddleware, async (c) => {
 });
 
 // Rate History Per Currency Limit = 30
-rateRoutes.get("/history/:currencyId", authMiddleware, async (c) => {
+rateRoutes.get("/history/:currencyId", async (c) => {
     const currencyId = c.req.param("currencyId");
 
     if (!currencyId)
@@ -102,7 +113,7 @@ rateRoutes.get("/history/:currencyId", authMiddleware, async (c) => {
 });
 
 // Rate By Id
-rateRoutes.get("/:id", authMiddleware, async (c) => {
+rateRoutes.get("/:id", async (c) => {
     const Id = c.req.param("id");
 
     if (!Id) {
@@ -120,7 +131,7 @@ rateRoutes.get("/:id", authMiddleware, async (c) => {
 });
 
 // Update Rate
-rateRoutes.put("/:id", authMiddleware, canEditConfig, async (c) => {
+rateRoutes.put("/:id", canEditConfig, async (c) => {
     const Id = c.req.param("id");
 
     if (!Id) {
@@ -152,7 +163,7 @@ rateRoutes.put("/:id", authMiddleware, canEditConfig, async (c) => {
 });
 
 // Soft Delete Rate
-rateRoutes.patch("/:id/disable", authMiddleware, canEditConfig, async (c) => {
+rateRoutes.patch("/:id/disable", canEditConfig, async (c) => {
     const Id = c.req.param("id");
 
     if (!Id) {
@@ -172,7 +183,7 @@ rateRoutes.patch("/:id/disable", authMiddleware, canEditConfig, async (c) => {
 });
 
 // Restore Rate
-rateRoutes.patch("/:id/enable", authMiddleware, canEditConfig, async (c) =>{
+rateRoutes.patch("/:id/enable", canEditConfig, async (c) =>{
     const Id = c.req.param("id");
 
     if (!Id) {
