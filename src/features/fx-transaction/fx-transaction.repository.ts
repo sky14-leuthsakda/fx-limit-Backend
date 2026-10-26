@@ -98,6 +98,15 @@ export const findAllTransactions = async () => {
     return result[0] ?? [];
 };
 
+// Get Deleted Transactions (Trash Bin)
+export const findDeletedTransactions = async () => {
+    const [result] = await pool.query<RowDataPacket[][]>(
+        "CALL sp_fx_daily_get_deleted()"
+    );
+
+    return result[0] ?? [];
+};
+
 // Transactions Paginated
 export const findTransactionsPaginated = async (page: number, limit: number) => {
     const [results] = await pool.query<RowDataPacket[][]>(

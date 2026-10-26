@@ -49,6 +49,16 @@ fxTransactionRoutes.get("/", canViewFx, async (c) => {
     });
 });
 
+// Get Deleted Transactions (Trash Bin)
+fxTransactionRoutes.get("/deleted", authMiddleware, async (c) => {
+    const deletedTransactions = await fxTransactionService.getDeletedTransactions();
+    return c.json({
+        success: true,
+        message: "ດຶງຂໍ້ມູນທຸລະກຳທີ່ຖືກລົບສຳເລັດ",
+        data: deletedTransactions
+    });
+});
+
 // Transactions Paginated
 fxTransactionRoutes.get("/paginated", canViewFx, async (c) => {
     const page = Number(c.req.query("page") ?? 1);

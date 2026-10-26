@@ -177,6 +177,11 @@ export const getAllTransactions = async () => {
   return await fxTransactionRepository.findAllTransactions();
 };
 
+// Get Deleted Transactions (Trash Bin)
+export const getDeletedTransactions = async () => {
+    return await fxTransactionRepository.findDeletedTransactions();
+};
+
 // Transactions Paginated
 export const getTransactionsPaginated = async (page: number, limit: number) => {
   const safePage = page > 0 ? page : 1;
