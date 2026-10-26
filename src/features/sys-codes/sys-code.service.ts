@@ -37,6 +37,11 @@ export const getSysCodes = async (category?: string) => {
     return await sysCodeRepository.findAllSysCodes();
 };
 
+// Get Deleted Sys Codes (Trash Bin)
+export const getDeletedSysCodes = async () => {
+    return await sysCodeRepository.findDeletedSysCodes();
+};
+
 // Sys Code By ID
 export const getSysCodeById = async (codeId: number) => {
     const sysCode = await sysCodeRepository.findSysCodeById(codeId);

@@ -45,6 +45,16 @@ sysCodeRoutes.get("/", authMiddleware, async (c) => {
     });
 });
 
+// Get Deleted Sys Codes (Trash Bin) 
+sysCodeRoutes.get("/deleted", authMiddleware, canEditConfig, async (c) => {
+    const deletedCodes = await sysCodeService.getDeletedSysCodes();
+    return c.json({
+        success: true,
+        message: "ດຶງຂໍ້ມູນ Sys Code ທີ່ຖືກລົບສຳເລັດ",
+        data: deletedCodes
+    });
+});
+
 // Sys Code By ID
 sysCodeRoutes.get("/:id", authMiddleware, async (c) => {
     const id = c.req.param("id");

@@ -14,11 +14,11 @@ import { requirePermission } from "../../middlewares/permission.middleware.js";
 const orgRoutes = new Hono<{ Variables: Variables }>();
 const canManageORG = requirePermission("ORG_MANAGE");
 
-orgRoutes.use("*", authMiddleware, canManageORG);
+orgRoutes.use("*", authMiddleware);
 // =================== Branches ======================
 
 // Create Branch
-orgRoutes.post("/branches", async (c) => {
+orgRoutes.post("/branches", canManageORG, async (c) => {
     const body = await c.req.json();
     const validation = createBranchSchema.safeParse(body);
 
@@ -65,7 +65,7 @@ orgRoutes.get("/branches/paginated", async (c) => {
 );
 
 // Get Deleted Branches (Trash Bin)
-orgRoutes.get("/branches/deleted", async (c) => {
+orgRoutes.get("/branches/deleted", canManageORG, async (c) => {
     const deletedBranches = await orgService.getDeletedBranches();
     return c.json({
         success: true,
@@ -212,7 +212,7 @@ orgRoutes.get("/units/paginated", async (c) => {
 });
 
 // Get Deleted Units (Trash Bin)
-orgRoutes.get("/units/deleted", async (c) => {
+orgRoutes.get("/units/deleted", canManageORG, async (c) => {
     const deletedUnits = await orgService.getDeletedUnits();
     return c.json({
         success: true,

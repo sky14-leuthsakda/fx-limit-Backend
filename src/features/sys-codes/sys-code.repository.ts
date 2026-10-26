@@ -33,6 +33,14 @@ export const findAllSysCodes = async () => {
   return result[0] ?? [];
 };
 
+// Get Deleted Sys Codes (Trash Bin)
+export const findDeletedSysCodes = async () => {
+    const [result] = await pool.query<RowDataPacket[][]>(
+        "CALL sp_sys_codes_get_deleted()"
+    );
+    return result[0] ?? [];
+};
+
 // Sys Codes By Category
 export const findSyscodesByCategory = async (category: string) => {
     const [result] = await pool.query<RowDataPacket[][]>(
