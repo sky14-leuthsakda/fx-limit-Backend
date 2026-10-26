@@ -11,20 +11,28 @@ export const customerDocs = {
                         schema: {
                             type: "object",
                             properties: {
-                                name: { type: "string", example: "ສົມສີ ໃຈດີ" },
                                 idTypeId: { type: "integer", example: 1 },
                                 idCode: { type: "string", example: "B1234567" },
-                                phone: { type: "string", example: "2022111222" },
+                                isForeigner: { type: "boolean", example: false },
+                                firstNameEn: { type: "string", example: "Somsi" },
+                                lastNameEn: { type: "string", example: "Jaidee" },
+                                firstNameLo: { type: "string", example: "ສົມສີ" },
+                                lastNameLo: { type: "string", example: "ໃຈດີ" },
+                                dateOfBirth: { type: "string", example: "1990-01-01" },
+                                genderId: { type: "integer", example: 1 },
+                                phoneNumber: { type: "string", example: "2022111222" },
+                                address: { type: "string", example: "Vientiane" },
                             },
-                            required: ["name", "idTypeId", "idCode"],
+                            required: ["idTypeId", "idCode", "isForeigner"],
                         },
                     },
                 },
             },
             responses: {
                 "201": { description: "ສ້າງຂໍ້ມູນລູກຄ້າສຳເລັດ" },
-                "400": { description: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ" },
+                "400": { description: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ (ລວມເຖິງເງື່ອນໄຂຊື່ພາສາລາວ/ອັງກິດ)" },
                 "401": { description: "Unauthorized" },
+                "409": { description: "ລູກຄ້າມີເລກທີເອກະສານນີ້ແລ້ວ" },
             },
         },
         get: {
@@ -33,6 +41,17 @@ export const customerDocs = {
             security: [{ BearerAuth: [] }],
             responses: {
                 "200": { description: "ດຶງຂໍ້ມູນສຳເລັດ" },
+                "401": { description: "Unauthorized" },
+            },
+        },
+    },
+    "/customers/deleted": {
+        get: {
+            summary: "ດຶງລາຍຊື່ລູກຄ້າທີ່ຖືກລົບ / Trash Bin (Get Deleted Customers)",
+            tags: ["Customers"],
+            security: [{ BearerAuth: [] }],
+            responses: {
+                "200": { description: "ດຶງຂໍ້ມູນລູກຄ້າທີ່ຖືກລົບສຳເລັດ" },
                 "401": { description: "Unauthorized" },
             },
         },
@@ -68,11 +87,11 @@ export const customerDocs = {
     },
     "/customers/search": {
         get: {
-            summary: "ຄົ้นຫາລູກຄ້າຕາມຊື່ (Search Customer By Name)",
+            summary: "ຄົ້ນຫາລູກຄ້າຕາມຊື່ (Search Customer By Name)",
             tags: ["Customers"],
             security: [{ BearerAuth: [] }],
             parameters: [
-                { name: "name", in: "query", required: true, schema: { type: "string" }, description: "ຊື່ລູກຄ້າที่ຕ້ອງການຄົ້ນຫາ" },
+                { name: "name", in: "query", required: true, schema: { type: "string" }, description: "ຊື່ລູກຄ້າທີ່ຕ້ອງການຄົ້ນຫາ" },
                 { name: "limit", in: "query", required: false, schema: { type: "integer" }, description: "ຈຳນວນສູງສຸດທີ່ຕ້ອງການສະແດງ" },
             ],
             responses: {
@@ -92,6 +111,7 @@ export const customerDocs = {
             responses: {
                 "200": { description: "ສຳເລັດ" },
                 "400": { description: "ID ຕ້ອງເປັນຕົວເລກທີ່ຖືກຕ້ອງ" },
+                "404": { description: "ບໍ່ພົບລູກຄ້າ" },
             },
         },
         put: {
@@ -108,8 +128,18 @@ export const customerDocs = {
                         schema: {
                             type: "object",
                             properties: {
-                                name: { type: "string", example: "ສົມສີ ອັບເດດ" },
-                                phone: { type: "string", example: "2022333444" },
+                                idTypeId: { type: "integer", example: 1 },
+                                idCode: { type: "string", example: "B1234567" },
+                                isForeigner: { type: "boolean", example: false },
+                                firstNameEn: { type: "string", example: "Somsi" },
+                                lastNameEn: { type: "string", example: "Jaidee" },
+                                firstNameLo: { type: "string", example: "ສົມສີ" },
+                                lastNameLo: { type: "string", example: "ໃຈດີ" },
+                                dateOfBirth: { type: "string", example: "1990-01-01" },
+                                genderId: { type: "integer", example: 1 },
+                                phoneNumber: { type: "string", example: "2022333444" },
+                                address: { type: "string", example: "Vientiane Updated" },
+                                isActive: { type: "integer", example: 1 },
                             },
                         },
                     },
@@ -117,13 +147,15 @@ export const customerDocs = {
             },
             responses: {
                 "200": { description: "ແກ້ໄຂຂໍ້ມູນລູກຄ້າສຳເລັດ" },
-                "400": { description: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ ຫຼື ID ບໍ່ຖືກຕ້ອງ" },
+                "400": { description: "ຂໍ້ມູນບໍ່ຖືກຕ້ອງ" },
+                "404": { description: "ບໍ່ພົບລູກຄ້າ" },
+                "409": { description: "ເລກທີເອກະສານນີ້ມີຢູ່ໃນລະບົບແລ້ວ" },
             },
         },
     },
     "/customers/{id}/disable": {
         patch: {
-            summary: "ປິດການໃຊ້ງານຂໍ້ມູນລູກຄ້າ (Disable Customer)",
+            summary: "ປິດການໃຊ້ງານຂໍ້ມູນລູກຄ້າ / Soft Delete (Disable Customer)",
             tags: ["Customers"],
             security: [{ BearerAuth: [] }],
             parameters: [
@@ -132,12 +164,13 @@ export const customerDocs = {
             responses: {
                 "200": { description: "ປິດການໃຊ້ງານຂໍ້ມູນລູກຄ້າສຳເລັດ" },
                 "400": { description: "ID ບໍ່ຖືກຕ້ອງ" },
+                "404": { description: "ບໍ່ພົບລູກຄ້າ" },
             },
         },
     },
     "/customers/{id}/enable": {
         patch: {
-            summary: "ເປີດການໃຊ້ງານຂໍ້ມູນລູກຄ້າ (Restore Customer)",
+            summary: "ເປີດການໃຊ້ງານຂໍ້ມູນລູກຄ້າ / Restore (Restore Customer)",
             tags: ["Customers"],
             security: [{ BearerAuth: [] }],
             parameters: [
@@ -146,6 +179,7 @@ export const customerDocs = {
             responses: {
                 "200": { description: "ເປີດການໃຊ້ງານຂໍ້ມູນລູກຄ້າສຳເລັດ" },
                 "400": { description: "ID ບໍ່ຖືກຕ້ອງ" },
+                "404": { description: "ບໍ່ພົບລູກຄ້າ" },
             },
         },
     },

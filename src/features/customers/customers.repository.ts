@@ -44,6 +44,15 @@ export const findAllCustomers = async () => {
     return result[0] ?? [];
 };
 
+// Get Deleted Customers (Trash Bin)
+export const findDeletedCustomers = async () => {
+    const [result] = await pool.query<RowDataPacket[][]>(
+        "CALL sp_customers_get_deleted()"
+    );
+
+    return result[0] ?? [];
+};
+
 export const findCustomersPaginated = async (
     page: number, 
     limit: number

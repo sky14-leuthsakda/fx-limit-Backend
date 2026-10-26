@@ -54,6 +54,16 @@ customerRoutes.get("/", canViewFx, async (c) => {
     });
 });
 
+// Get Deleted Customers (Trash Bin)
+customerRoutes.get("/deleted", canViewFx, async (c) => {
+    const deletedCustomers = await customerService.getDeletedCustomers();
+    return c.json({
+        success: true,
+        message: "ດຶງຂໍ້ມູນລູກຄ້າທີ່ຖືກລົບສຳເລັດ",
+        data: deletedCustomers
+    });
+});
+
 // Get Customers Paginated
 customerRoutes.get("/paginated", canViewFx, async (c) => {
     const page = Number(c.req.query("page") ?? 1);

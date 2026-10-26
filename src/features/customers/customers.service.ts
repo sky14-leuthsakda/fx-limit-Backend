@@ -52,6 +52,11 @@ export const getAllCustomers = async () => {
   return await customerRepository.findAllCustomers();
 };
 
+// Get Deleted Customers (Trash Bin)
+export const getDeletedCustomers = async () => {
+    return await customerRepository.findDeletedCustomers();
+};
+
 // Customers Paginated
 export const getCustomersPaginated = async (
     page: number, 
