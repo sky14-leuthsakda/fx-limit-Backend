@@ -87,6 +87,16 @@ appConfigRoutes.get("/", async (c) => {
     });
 });
 
+// Get Deleted Configs (Trash Bin)
+appConfigRoutes.get("/deleted", requireConfigPermission, async (c) => {
+    const deletedConfigs = await appConfigService.getDeletedConfigs();
+    return c.json({
+        success: true,
+        message: "ດຶງຂໍ້ມູນ Config ທີ່ຖືກລົບສຳເລັດ",
+        data: deletedConfigs
+    });
+});
+
 // Get Config By Key
 appConfigRoutes.get("/:configKey", async (c) => {
     const configKey = c.req.param("configKey");

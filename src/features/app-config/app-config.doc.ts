@@ -1,5 +1,5 @@
 export const appConfigDocs = {
-    "/app-configs": {
+    "/app-config": {
         post: {
             summary: "Create App Config",
             tags: ["App Configs"],
@@ -37,7 +37,19 @@ export const appConfigDocs = {
             },
         },
     },
-    "/app-configs/{configKey}": {
+    "/app-config/deleted": {
+        get: {
+            summary: "Get Deleted App Configs (Trash Bin)",
+            tags: ["App Configs"],
+            security: [{ BearerAuth: [] }],
+            responses: {
+                "200": { description: "Successful response" },
+                "401": { description: "Unauthorized" },
+                "403": { description: "Forbidden" },
+            },
+        },
+    },
+    "/app-config/{configKey}": {
         get: {
             summary: "Get App Config By Key",
             tags: ["App Configs"],
@@ -78,7 +90,7 @@ export const appConfigDocs = {
             },
         },
     },
-    "/app-configs/{configKey}/disable": {
+    "/app-config/{configKey}/disable": {
         patch: {
             summary: "Disable App Config",
             tags: ["App Configs"],
@@ -92,7 +104,7 @@ export const appConfigDocs = {
             },
         },
     },
-    "/app-configs/{configKey}/enable": {
+    "/app-config/{configKey}/enable": {
         patch: {
             summary: "Restore App Config",
             tags: ["App Configs"],

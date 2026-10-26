@@ -30,6 +30,15 @@ export const findAllConfigs = async () => {
     return result[0] ?? [];
 };
 
+// Get Deleted Configs (Trash Bin)
+export const findDeletedConfigs = async () => {
+    const [result] = await pool.query<RowDataPacket[][]>(
+        "CALL sp_app_config_get_deleted()"
+    );
+
+    return result[0] ?? [];
+};
+
 // Config By Key
 export const findConfigByKey = async (configKey: string) => {
     const [result] = await pool.query<RowDataPacket[][]>(

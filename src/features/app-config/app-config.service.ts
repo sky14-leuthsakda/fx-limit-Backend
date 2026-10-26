@@ -32,6 +32,11 @@ export const getAllConfigs = async () => {
     return await appConfigRepository.findAllConfigs();
 };
 
+// Get Deleted Configs (Trash Bin)
+export const getDeletedConfigs = async () => {
+    return await appConfigRepository.findDeletedConfigs();
+};
+
 // Config By Key
 export const getConfigByKey = async (configKey: string) => {
     const config = await appConfigRepository.findConfigByKey(configKey);
